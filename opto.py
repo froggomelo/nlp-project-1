@@ -473,7 +473,7 @@ def make_fn_from_opts(opts, default_fn=default_model_fwd_fn):
       separately calculate patterns and values for Layer 1 based on the input embeddings.
 
       For calculating patterns, we assign the input token embeddings in the right blocks,
-      and zero out the rest. For example 0 emb(A) 0 emb(B) emb(A) would be the "ouptut" of
+      and zero out the rest. For example emb(A) emb(A) emb(0) emb(B) emb(A) would be the "ouptut" of
       layer 0 for the purpose of calculating patterns.
 
       We also clamp the values at the end of Layer 0, to avoid any interference effects.
