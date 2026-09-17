@@ -209,6 +209,9 @@ def evaluate(
   retval = dict()
   for seed, k in zip(seeds, eval_data):
     retval[k] = eval_fn(model, eval_data[k]['examples'], eval_data[k]['labels'], key=seed)
+    # Aggregate all query losses before exponentiating, including partial batches.
+    # Keep a length-one array for the existing HDF5 metric logging interface.
+    retval[k]['perplexity'] = jnp.exp(jnp.mean(retval[k]['loss']))[None]
   return retval
 
 
@@ -564,6 +567,9 @@ def run_with_opts(opts):
   for k in out:
     for m in out[k]:
       print(k, m, jnp.mean(out[k][m]))
+      if opts.use_wandb:
+        wandb.log({'-'.join([k, m]): jnp.mean(out[k][m]),
+                   'iteration': i + opts.train_bs}, step=1+i//opts.train_bs)
       addr = '/'.join([k,m])
       if addr in results:
         results[addr].resize(results[addr].shape[0] + 1, axis=0)
