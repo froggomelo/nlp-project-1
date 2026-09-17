@@ -2,12 +2,12 @@
 
 `src/` contains training code, `scripts/` run scripts, `plotting/` notebooks and plotting tools, `docs/` background documentation, and `data/` the dataset. Results stay in `results/`.
 
-Run all commands from the project folder. Use Python 3.9–3.12; the commands below use Python 3.10.
+Run all commands from the project folder. Use Python 3.9–3.12.
 
 1. **Set up the environment** (CPU):
 
    ```bash
-   python3.10 -m venv .venv
+   python3 -m venv .venv
    source .venv/bin/activate
    python -m pip install -r requirements.txt
    python -m pip install jupyterlab ipywidgets
