@@ -5,7 +5,7 @@ SAVE_FOLDER="./nlp_project_results"
 INIT_SEED=5
 
 ### Params for Main Paper Section 3
-MAIN_RUN_ITERS=64
+MAIN_RUN_ITERS=1000000
 
 python main.py \
 --data_file omniglot_resnet18_randomized_order_s0.h5 \
@@ -22,12 +22,12 @@ python main.py \
 --pe_burstiness 1 1 1 1 \
 --train_iters $MAIN_RUN_ITERS \
 --train_bs 32 \
---eval_every 64 \
---eval_iters 32 \
+--eval_every 5000 \
+--eval_iters 1000 \
 --lr 0.00001 \
 --d_model 64 \
 --class_split 50 1473 100 \
 --run omniglot50_rl5 \
---ckpt_every 64 \
+--ckpt_every 1000 \
 --init_seed $INIT_SEED \
---base_folder $SAVE_FOLDER --raw_name
+--base_folder $SAVE_FOLDER
