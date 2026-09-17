@@ -7,13 +7,14 @@ import argparse
 import h5py as h5
 import numpy as np
 import json
+from pathlib import Path
 
 import jax
 import jax.numpy as jnp
 import equinox as eqx
 import optax
 
-import models
+from src import models
 import pdb
 
 
@@ -135,6 +136,9 @@ def get_opts_from_json_file(fname):
   opts, unknown = parser.parse_known_args()
   with open(fname, 'r') as f:
     vars(opts).update(json.load(f))
+  # Keep runs saved before the dataset moved into data/ usable for plotting.
+  if opts.data_file in ('omniglot_resnet18_randomized_order_s0.h5', './omniglot_resnet18_randomized_order_s0.h5'):
+    opts.data_file = str(Path(__file__).resolve().parents[1] / 'data' / Path(opts.data_file).name)
   return opts
 
 

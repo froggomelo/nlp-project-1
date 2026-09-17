@@ -34,9 +34,9 @@ import jax.numpy as jnp
 import equinox as eqx
 import optax
 
-import samplers
-import main_utils
-import opto
+from src import samplers
+from src import main_utils
+from src import opto
 
 
 ALL_TRAIN_METRICS = ['loss', 'grad_norm', 'grad_batch_stddev']

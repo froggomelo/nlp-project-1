@@ -24,8 +24,8 @@ import jax.numpy as jnp
 import equinox as eqx
 import equinox.nn as enn
 
-import models
-import main_utils
+from src import models
+from src import main_utils
 
 
 def add_args_to_parser(parser):

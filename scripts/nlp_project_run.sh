@@ -1,14 +1,17 @@
 #!/bin/bash
 
+# Resolve all data and output paths from the project root.
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
+
 ### Overarching params
-SAVE_FOLDER="./nlp_project_results"
+SAVE_FOLDER="./results"
 INIT_SEED=5
 
 ### Params for Main Paper Section 3
 MAIN_RUN_ITERS=1000000
 
-python main.py \
---data_file omniglot_resnet18_randomized_order_s0.h5 \
+python -m src.main \
+--data_file data/omniglot_resnet18_randomized_order_s0.h5 \
 --mixing_coeffs 1.0 \
 --pt_burstiness 1 \
 --train_context_len 2 \

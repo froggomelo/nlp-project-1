@@ -1,5 +1,7 @@
 # In context learning dynamics in transformers
 
+This is the original paper documentation, with links updated for the project layout. Some referenced paper assets are not included in this checkout, including `simple_model_solver.py` and the additional-seed notebooks. The paper run scripts still require that solver for their toy-model figures. See the [project README](../README.md) for the supported project run and plotting workflow.
+
 ## Table of Contents
 
 1. [Overview](#overview)
@@ -32,42 +34,42 @@ If you're interested in extensions (or have questions about the code), feel free
 ## Codebase structure
 
 General codebase sturcture:
-- [main_utils.py](main_utils.py): contains basically all argparse functionality. Each parameter has a dedicated help string which can be used to understand it. Many of the options are unused/set to their default values for the papers, but we found useful to play around with in earlier stages of the project to build intuition.
-- [main.py](main.py): Used to run training experiments. Contains training code (e.g., loss computation and `train_step` -- this is where the jitting happens). Uses the functions from `main_utils` to create dataset, model, etc. and run training + evals throughout training.
-- [samplers.py](samplers.py): JAX-based data sampling for our synthetic setup. 
-- [models.py](models.py): Implements causal transformer models using our artificial optogenetics framework, allowing for easy recording and manipulation of intermediate activations
-- [opto.py](opto.py): Contains the options and implementations of various optogenetic manipulations we used for some of the work. Argparse arguments for optogenetic variations are added here. The general idea was to have this be similar intuitively to a [visitor pattern](https://web.mit.edu/6.031/www/sp22/classes/27-little-languages-2/), where to add optogenetic manipulations, all one has to do is modify opto.py. See [Artificial optogenetics framework](#artificial_opto) for more detail.
+- [main_utils.py](../src/main_utils.py): contains basically all argparse functionality. Each parameter has a dedicated help string which can be used to understand it. Many of the options are unused/set to their default values for the papers, but we found useful to play around with in earlier stages of the project to build intuition.
+- [main.py](../src/main.py): Used to run training experiments. Contains training code (e.g., loss computation and `train_step` -- this is where the jitting happens). Uses the functions from `main_utils` to create dataset, model, etc. and run training + evals throughout training.
+- [samplers.py](../src/samplers.py): JAX-based data sampling for our synthetic setup. 
+- [models.py](../src/models.py): Implements causal transformer models using our artificial optogenetics framework, allowing for easy recording and manipulation of intermediate activations
+- [opto.py](../src/opto.py): Contains the options and implementations of various optogenetic manipulations we used for some of the work. Argparse arguments for optogenetic variations are added here. The general idea was to have this be similar intuitively to a [visitor pattern](https://web.mit.edu/6.031/www/sp22/classes/27-little-languages-2/), where to add optogenetic manipulations, all one has to do is modify opto.py. See [Artificial optogenetics framework](#artificial_opto) for more detail.
 - [coopetition_model_solver.py](coopetition_model_solver.py): A lightweight library for the experimenting with toy models that we found to be surprisingly representative of larger network learning dynamics.
-- [visualize_runs.py](visualize_runs.py): A heavyweight plotting library for motivated readers that want to dive deeper. Largely useful for visualizing near-arbitrary progress measures with near-aribtrary optogenetic manipulations at the dataset and individual data point levels.
+- [visualize_runs.py](../plotting/visualize_runs.py): A heavyweight plotting library for motivated readers that want to dive deeper. Largely useful for visualizing near-arbitrary progress measures with near-aribtrary optogenetic manipulations at the dataset and individual data point levels.
 
 Generally, the codebase makes use of a lot of functional programming, as is common with JAX codebases.
 
 ### Random seed guarantees
 
-Part of why we used JAX is to ensure good random seed reproducibility (similar to other [JAX-based transformer frameworks](https://levanter.readthedocs.io/en/latest/Levanter-1.0-Release/#reproducibility-bitwise-determinism-with-levanter-and-jax)). To this end, we have a few different seeds (listed in [main_utils.py](main_utils.py), but repeated here):
+Part of why we used JAX is to ensure good random seed reproducibility (similar to other [JAX-based transformer frameworks](https://levanter.readthedocs.io/en/latest/Levanter-1.0-Release/#reproducibility-bitwise-determinism-with-levanter-and-jax)). To this end, we have a few different seeds (listed in [main_utils.py](../src/main_utils.py), but repeated here):
 - `init_seed`: Used to initialize model (when training from scratch)
-- `train_seed`: Used to generate training data (via [samplers.py](samplers.py)). Also used for things like dropout etc. if those are used (none of our experiments used these features)
+- `train_seed`: Used to generate training data (via [samplers.py](../src/samplers.py)). Also used for things like dropout etc. if those are used (none of our experiments used these features)
 - `eval_seed`: Used to generate eval data. We also have an option to directly read in pre-constructed eval data (`load_eval_data`). Also used for things like dropout etc. if those are used (none of our experiments used these features)
 
-See lines ~347-48 in [main.py](main.py) to see how the latter seeds get split into data and model. 
+See lines ~347-48 in [main.py](../src/main.py) to see how the latter seeds get split into data and model. 
 
-When checkpoints are saved, we save the three relevant seeds (see line ~510 in [main.py](main.py)).
+When checkpoints are saved, we save the three relevant seeds (see line ~510 in [main.py](../src/main.py)).
 
 Note, the way our training process works is that a seed is used at every step to generate a batch. This means if the batch size changes, the exact sequence of examples seen by the model will change. A batch size of 32 was used for all experiments. Tests with varying `train_seed` did not show much variance.
 
 <a name="data_setup"></a>
-## Setup (data: [samplers.py](samplers.py), overall: [main.py](main.py))
+## Setup (data: [samplers.py](../src/samplers.py), overall: [main.py](../src/main.py))
 
 Our setups builds off that introduced by Chan et al. (2022), in [Data Distributional Properties Drive Emergent In-Context Learning in Transformers](https://arxiv.org/abs/2205.05055). We are grateful for the authors of that work for open-sourcing their [code](https://github.com/google-deepmind/emergent_in_context_learning). We used their code for early experiments, but ended up creating our own repository tailored to our analyses. Our work also uses JAX, but relies on Equinox instead of Haiku. We found the PyTree formalism of Equinox easier to work with, especially for [artificial optogenetics](#artificial_opto).
 
-Our data generator assumes a set of classes. Each class can be composed of one or more exemplars. Sequences are composed of a _context_ of exemplar-label pairs, followed by a _query_ exemplar, for which the model needs to output a label. For sampling ([samplers.py](samplers.py)), we disentangle sampling class sequences for the context (`get_constant_burst_seq_idxs`) from exemplars within each class (`get_exemplar_inds`). Though all our experiments tended to just use a single form of class sampling, we offer a way to mix samplers (`get_mixed_seq_idxs`), which could be used to reproduce the experiments with varying p(bursty) in [Chan et al. (2022)](https://arxiv.org/abs/2205.05055) or for other experiments. To support "ICL-only" sequences, we offer `fewshot_relabel` which changes the class labels to be random across contexts (but consistent within a sequence). These sequences force the network to use ICL, which we found useful for our work studying [What needs to go right for an induction head?](https://arxiv.org/abs/2404.07129). Finally, our data samplers work by sampling class and exemplar indices, and only indexing to the data matrix (of dimension `# classes x # exemplars x input_dim`) at the last step. Our process is also end-to-end JIT-able. See [samplers.py](samplers.py) for more detail.
+Our data generator assumes a set of classes. Each class can be composed of one or more exemplars. Sequences are composed of a _context_ of exemplar-label pairs, followed by a _query_ exemplar, for which the model needs to output a label. For sampling ([samplers.py](../src/samplers.py)), we disentangle sampling class sequences for the context (`get_constant_burst_seq_idxs`) from exemplars within each class (`get_exemplar_inds`). Though all our experiments tended to just use a single form of class sampling, we offer a way to mix samplers (`get_mixed_seq_idxs`), which could be used to reproduce the experiments with varying p(bursty) in [Chan et al. (2022)](https://arxiv.org/abs/2205.05055) or for other experiments. To support "ICL-only" sequences, we offer `fewshot_relabel` which changes the class labels to be random across contexts (but consistent within a sequence). These sequences force the network to use ICL, which we found useful for our work studying [What needs to go right for an induction head?](https://arxiv.org/abs/2404.07129). Finally, our data samplers work by sampling class and exemplar indices, and only indexing to the data matrix (of dimension `# classes x # exemplars x input_dim`) at the last step. Our process is also end-to-end JIT-able. See [samplers.py](../src/samplers.py) for more detail.
 
-[main.py](main.py) uses the argparse options from [main_utils.py](main_utils.py) to construct the training and eval data iterators, the model, etc. It also contains the train and eval steps and conducts training. We support saving and loading from checkpoints at custom schedules (we found this useful to e.g., upsample checkpoints during a phase change). This is also where the JIT-ing happens (via `eqx.filter_jit`).
+[main.py](../src/main.py) uses the argparse options from [main_utils.py](../src/main_utils.py) to construct the training and eval data iterators, the model, etc. It also contains the train and eval steps and conducts training. We support saving and loading from checkpoints at custom schedules (we found this useful to e.g., upsample checkpoints during a phase change). This is also where the JIT-ing happens (via `eqx.filter_jit`).
 
 <a name="artificial_opto"></a>
-## Artificial Optogenetics framework ([models.py](models.py))
+## Artificial Optogenetics framework ([models.py](../src/models.py))
 
-A key contribution of our work is the artificial optogenetics framework. This is mostly manifest in [models.py](models.py), which implements a `Transformer` that contains all elements of the framework. We wrap it with `SequenceClassifier` for our specific exemplar-label sequences. All manipulations on top of the framework (for the experiments in our papers) are implemented in [opto.py](opto.py). For full documentation on this portion of the code, see [artificial_optogenetics_guide.md](artificial_optogenetics_guide.md). As always, feel free to reach out with questions or collaborations -- aaditya.singh.21@ucl.ac.uk.
+A key contribution of our work is the artificial optogenetics framework. This is mostly manifest in [models.py](../src/models.py), which implements a `Transformer` that contains all elements of the framework. We wrap it with `SequenceClassifier` for our specific exemplar-label sequences. All manipulations on top of the framework (for the experiments in our papers) are implemented in [opto.py](../src/opto.py). For full documentation on this portion of the code, see [artificial_optogenetics_guide.md](artificial_optogenetics_guide.md). As always, feel free to reach out with questions or collaborations -- aaditya.singh.21@ucl.ac.uk.
 
 <a name="transience"></a>
 ## Reproducing [The Transient Nature of Emergent In-Context Learning in Transformers](https://arxiv.org/abs/2311.08360)
@@ -76,7 +78,7 @@ Most of the runs in this paper were conducted with the [original codebase](https
 
 LLaMa embedding vectors (extracted from LLaMa 1 open-source weights) were clustered using [FAISS](https://github.com/facebookresearch/faiss) using the procedure in the paper and then turned into h5 files (with dimensions `# classes x # exemplars x input_dim`, where `input_dim` varies based on LLaMa source model size). An example sweep file operating on these h5's is [llama_sweep_example.py](llama_sweep_example.py).
 
-Omniglot embeddings were extracted using [omni_features_extract.py](omni_features_extract.py) and then experiments for Appendix C were run using a sweep file like [fixed_omni_emb_sweep_example.py](fixed_omni_emb_sweep_example.py). This file may be of use to see how the evaluators were structured.
+Omniglot embeddings were extracted using [omni_features_extract.py](../src/omni_features_extract.py) and then experiments for Appendix C were run using a sweep file like [fixed_omni_emb_sweep_example.py](fixed_omni_emb_sweep_example.py). This file may be of use to see how the evaluators were structured.
 
 ### Cite
 
@@ -96,19 +98,19 @@ If citing these evaluators/experiments, please use:
 <a name="ih_paper"></a>
 ## Reproducing [What needs to go right for an induction head?](https://arxiv.org/abs/2404.07129)
 
-This codebase was largely made to support this paper. The dataset uses pre-processed omniglot features, similar to the transience paper. Namely, [omni_features_extract.py](omni_features_extract.py) was used to extract features. For simplicity, only 5 exemplars per class were processed (as the paper only uses 1 exemplar per class for training, and the remaining 4 for one of the test sets). These features were then re-ordered randomly to form the data file `omniglot_resnet18_randomized_order_s0.h5`, provided in the codebase. We directly provide this file to enable researchers without access to GPUs to quickly get started with the codebase -- all experiments for this paper can be run on a laptop!
+This codebase was largely made to support this paper. The dataset uses pre-processed omniglot features, similar to the transience paper. Namely, [omni_features_extract.py](../src/omni_features_extract.py) was used to extract features. For simplicity, only 5 exemplars per class were processed (as the paper only uses 1 exemplar per class for training, and the remaining 4 for one of the test sets). These features were then re-ordered randomly to form the data file `omniglot_resnet18_randomized_order_s0.h5`, provided in the codebase. We directly provide this file to enable researchers without access to GPUs to quickly get started with the codebase -- all experiments for this paper can be run on a laptop!
 
-To reproduce the figures of the paper, one should first run [ih_paper_runs.sh](ih_paper_runs.sh), which contains all the relevant runs for the paper (for a given initialization seed). Then, one can use the [ih_paper_plots.ipynb](ih_paper_plots.ipynb) to reproduce all figures from the paper.
+To reproduce the figures of the paper, one should first run [ih_paper_runs.sh](../scripts/ih_paper_runs.sh), which contains all the relevant runs for the paper (for a given initialization seed). Then, one can use the [ih_paper_plots.ipynb](../plotting/ih_paper_plots.ipynb) to reproduce all figures from the paper.
 
-Those files minimally reproduce the paper. To additionally obtain all appendix results, run [ih_paper_appendix_runs.sh](ih_paper_appendix_runs.sh) and [ih_paper_appendix_plots.ipynb](ih_paper_appendix_plots.ipynb).
+Those files minimally reproduce the paper. To additionally obtain all appendix results, run [ih_paper_appendix_runs.sh](../scripts/ih_paper_appendix_runs.sh) and [ih_paper_appendix_plots.ipynb](../plotting/ih_paper_appendix_plots.ipynb).
 
-All of the above rely on [ih_paper_plot_utils.py](ih_paper_plot_utils.py) for some utils (e.g., a simplified forward function wrapper).
+All of the above rely on [ih_paper_plot_utils.py](../plotting/ih_paper_plot_utils.py) for some utils (e.g., a simplified forward function wrapper).
 
 For the toy model of phase changes, we have a separate file [simple_model_solver.py](simple_model_solver.py). This file is called in the scripts above to generate the corresponding figures. It is completely independent of the rest of codebase, and may also be useful to those looking to further study toy models with clamping and/or progress measures.
 
 ### Additional results on different initialization seeds
 
-We include notebook copies of [ih_paper_plots.ipynb](ih_paper_plots.ipynb) that plot results from runs we did on different initialization seeds in the folder `ih_paper_additional_seeds`. To actually run these notebooks, one would have to run [ih_paper_runs.sh](ih_paper_runs.sh) with other seeds, then move the notebook to the top-level folder and run it. Our intent with these notebooks is just to share additional results showing qualitative reprodubility of the observed phenomenon.
+We include notebook copies of [ih_paper_plots.ipynb](../plotting/ih_paper_plots.ipynb) that plot results from runs we did on different initialization seeds in the folder `ih_paper_additional_seeds`. To actually run these notebooks, one would have to run [ih_paper_runs.sh](../scripts/ih_paper_runs.sh) with other seeds, then move the notebook to the top-level folder and run it. Our intent with these notebooks is just to share additional results showing qualitative reprodubility of the observed phenomenon.
 
 ### Cite
 
@@ -128,7 +130,7 @@ We include notebook copies of [ih_paper_plots.ipynb](ih_paper_plots.ipynb) that 
 
 This paper required significantly more compute than the [previous paper](#ih_paper), so we recommend using GPUs. The total compute is still significantly lower than the [first transience paper](#transience), given the smaller models used.
 
-To reproduce this paper, one should first generate the exemplar embeddings using [omni_features_extract.py](omni_features_extract.py). Then, one can run [coopetition_paper_sweep.py](coopetition_paper_sweep.py), which uses [submitit](https://github.com/facebookincubator/submitit) to parallelize jobs on a slurm cluster. The exact configuration may need to be changed depending on where you're running the jobs. Worst case, it should be relatively simple to run them sequentially. Note that the final two runs are on 12L models, and will take about 2 days on a 80GB H100 GPU -- those runs are only used for Figure 6b, and so could be removed if this is too expensive. Once the sweep is done, one can use [coopetition_paper_plots.ipynb](coopetition_paper_plots.ipynb) to reproduce all figures from the main paper.
+To reproduce this paper, one should first generate the exemplar embeddings using [omni_features_extract.py](../src/omni_features_extract.py). Then, one can run [coopetition_paper_sweep.py](coopetition_paper_sweep.py), which uses [submitit](https://github.com/facebookincubator/submitit) to parallelize jobs on a slurm cluster. The exact configuration may need to be changed depending on where you're running the jobs. Worst case, it should be relatively simple to run them sequentially. Note that the final two runs are on 12L models, and will take about 2 days on a 80GB H100 GPU -- those runs are only used for Figure 6b, and so could be removed if this is too expensive. Once the sweep is done, one can use [coopetition_paper_plots.ipynb](coopetition_paper_plots.ipynb) to reproduce all figures from the main paper.
 
 Those files minimally reproduce the main text. To additionally obtain all appendix results, run [coopetition_paper_appendix_sweep.py](coopetition_paper_appendix_sweep.py) and [coopetition_paper_appendix_plots.ipynb](coopetition_paper_appendix_plots.ipynb).
 
@@ -138,7 +140,7 @@ Building off [simple_model_solver.py](simple_model_solver.py) used for the [indu
 
 ### Visualization
 
-We created a heavier-weight plotting library to further explore our models: [visualize_runs.py](visualize_runs.py). This may not be the easiest to use for newcomers, but we found it very helpful in looking at a wide variety of evolution plots through training (i.e., progress measures), with arbitrary optogenetic manipulations. It also offers functionality to decompose to the individual datapoint level, which we explored briefly (in the ICL-only setting), noting some interesting things such as loss on many individual points actually increasing before decreasing. We're excited to release this tooling in case its helpful to other ICL researchers!
+We created a heavier-weight plotting library to further explore our models: [visualize_runs.py](../plotting/visualize_runs.py). This may not be the easiest to use for newcomers, but we found it very helpful in looking at a wide variety of evolution plots through training (i.e., progress measures), with arbitrary optogenetic manipulations. It also offers functionality to decompose to the individual datapoint level, which we explored briefly (in the ICL-only setting), noting some interesting things such as loss on many individual points actually increasing before decreasing. We're excited to release this tooling in case its helpful to other ICL researchers!
 
 ### Cite
 

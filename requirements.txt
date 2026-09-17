@@ -1,6 +1,6 @@
 # CPU training with the existing Omniglot embeddings, plus plotting utilities.
 # Use Python 3.9-3.12 (the project setup guide uses Python 3.10).
-# Install: python -m pip install -r requirement.txt
+# Install: python -m pip install -r requirements.txt
 # Keep the JAX stack on versions compatible with this repository's older APIs.
 jax==0.4.26
 jaxlib==0.4.26

@@ -18,7 +18,7 @@ from time import time
 import pickle as pkl
 from torchvision.models import ResNet18_Weights, AlexNet_Weights, ResNet50_Weights, alexnet, resnet18, resnet50
 from tqdm import tqdm
-from omniglot_dataset import OmniglotFull, RotateAndFlipTransform, RotateAndFlipDataset
+from src.omniglot_dataset import OmniglotFull, RotateAndFlipTransform, RotateAndFlipDataset
 import pdb
 
 base_path = '/path/to/save'

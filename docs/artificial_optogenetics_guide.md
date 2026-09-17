@@ -4,7 +4,7 @@ Desiderata: A transformer model implementation that makes it easy to access and 
 
 The first parts of this guide go through the general structures we used to satisfy these desiderata. As far as we can tell, these are not specific to transformers, though our implementation is. The latter parts are more specific to transformers. 
 
-## How it works ([models.py](models.py))
+## How it works ([models.py](../src/models.py))
 
 ### `call_with_all_aux` for intermediate activations
 
@@ -38,7 +38,7 @@ where `wq` is for example a linear layer, we would instead do:
 
 `assign_fn('q', wq(r['x']))`
 
-One can thus view `r` as a version of the python native `locals()`. This syntax of looping through `r` as the local context and `assign_fn` as the assignment operator allows for cache-aware assingment with relatively little code overhead (see examples in [models.py](models.py)). 
+One can thus view `r` as a version of the python native `locals()`. This syntax of looping through `r` as the local context and `assign_fn` as the assignment operator allows for cache-aware assingment with relatively little code overhead (see examples in [models.py](../src/models.py)). 
 
 The internal working of `assign_fn` is extremely simple: it simply checks if the element being assigned (e.g., `'q'`) is present in the cache, and if it is, it overrides the value being assigned according to the cache and cache_mask. We create `assign_fn` using the `make_cache_assign` function, which wraps up `r`, `cache`, and `cache_mask` so they don't have to be passed every time (making it simpler to write code).
 
@@ -69,17 +69,17 @@ When working with `cache` objects, we recommend using functions such as `jax.tre
 
 For completeness, we provide a complete description of what the cache for an example 2L model with MLPs would look like in our case in [example_cache_explanation.md](example_cache_explanation.md). Note, our specific "model" is called `SequenceClassifier` and is specific to the paired exemplar-label setting we operate in. The underlying `Transformer` is likely more generally useful to users. Our implementation also contains various dropout layers (legacy remnants from older versions), though these were not used for any experiments and thus correctness is not guaranteed.
 
-## How to use it, and how we used it ([opto.py](opto.py))
+## How to use it, and how we used it ([opto.py](../src/opto.py))
 
-The idea behind [models.py](models.py) and the above explanation is to provide a general framework for JAX-based interpretability. Of course, for specific projects and needs, different things will be done on top of the framework.
+The idea behind [models.py](../src/models.py) and the above explanation is to provide a general framework for JAX-based interpretability. Of course, for specific projects and needs, different things will be done on top of the framework.
 
-All optogenetic manipulations (e.g., ablating heads) are done in [opto.py](opto.py). Our philosophy with this file was that of a [visitor pattern](https://web.mit.edu/6.031/www/sp22/classes/27-little-languages-2/). For example, this file has an `add_args_to_parser` method which adds optogenetic specific args to the argparse. This allows for easily adding new arguments without modifying any other code file. Similarly, we provide a wrapper formalism for optogenetic manipulations via the `make_fn_from_opts` method. This method takes in all specified options and returns a forward function of the form `call(model, x, y, key)`. This function operates on a single example level, and then can be vmapped for use in training and inference. This abstraction removes the need for calling files (e.g., [main.py](main.py)) to reference the underlying workings of [opto.py](opto.py).
+All optogenetic manipulations (e.g., ablating heads) are done in [opto.py](../src/opto.py). Our philosophy with this file was that of a [visitor pattern](https://web.mit.edu/6.031/www/sp22/classes/27-little-languages-2/). For example, this file has an `add_args_to_parser` method which adds optogenetic specific args to the argparse. This allows for easily adding new arguments without modifying any other code file. Similarly, we provide a wrapper formalism for optogenetic manipulations via the `make_fn_from_opts` method. This method takes in all specified options and returns a forward function of the form `call(model, x, y, key)`. This function operates on a single example level, and then can be vmapped for use in training and inference. This abstraction removes the need for calling files (e.g., [main.py](../src/main.py)) to reference the underlying workings of [opto.py](../src/opto.py).
 
 Our optogenetic manipulations were mainly used in the [What needs to go right for an induction head?](https://arxiv.org/abs/2404.07129) paper. As a result, many of them assume that the input sequences are 5 tokens long and have the format exemplar-label-exemplar-label-query. Many optogenetic manipulations rely on two (or more) passes through the network -- in the first, various activations are computed using the unperturbed network. These activations are then used to populate the cache, which is then used during a second pass through the network. This is, for example, how pattern- and value-preserving ablations are coded up.
 
-Beyond these python files, we strongly suggest users to go through the [ih_paper_appendix_runs.sh](ih_paper_appendix_runs.sh) script and [ih_paper_appendix_plots.ipynb](ih_paper_appendix_plots.ipynb) notebook, which really demonstrate how simple it is to do various analyses. The main paper files also have useful examples, but the appendix contains more uses which could be of interest for future work.
+Beyond these python files, we strongly suggest users to go through the [ih_paper_appendix_runs.sh](../scripts/ih_paper_appendix_runs.sh) script and [ih_paper_appendix_plots.ipynb](../plotting/ih_paper_appendix_plots.ipynb) notebook, which really demonstrate how simple it is to do various analyses. The main paper files also have useful examples, but the appendix contains more uses which could be of interest for future work.
 
-Note: Most comments in [opto.py](opto.py) refer to the first two layers of the model as "layer 0" and "layer 1" (essentially, 0-indexing).
+Note: Most comments in [opto.py](../src/opto.py) refer to the first two layers of the model as "layer 0" and "layer 1" (essentially, 0-indexing).
 
 ## Possible extensions
 

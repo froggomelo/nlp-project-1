@@ -55,12 +55,12 @@ import jax.numpy as jnp
 import equinox as eqx
 import optax
 
-import samplers
-import models
-import main
-import main_utils
-import plot_utils
-import opto
+from src import samplers
+from src import models
+from src import main
+from src import main_utils
+from plotting import plot_utils
+from src import opto
 import pickle as pkl
 
 
