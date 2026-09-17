@@ -23,6 +23,8 @@ Run all commands from the project folder. Use Python 3.9–3.12; the commands be
 
    The script uses the included `data/omniglot_resnet18_randomized_order_s0.h5` dataset. Edit `MAIN_RUN_ITERS` in the script for a shorter run (default: 1,000,000 sequences, or 31,250 batches).
 
+   Terminal output (including errors) is also saved to `results/<timestamp>_nlp_project_run_<pid>.log` while training runs.
+
 3. **Find the outputs:** each run creates `results/<timestamp>_omniglot50_rl5/`, containing:
 
    - `config.json` — run settings.
