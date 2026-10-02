@@ -15,6 +15,22 @@ echo "Saving terminal output to $LOG_FILE"
 ### Params for Main Paper Section 3
 MAIN_RUN_ITERS=1000000
 
+### Model collapse params (override with environment variables)
+# MODEL_VARIANT: base (predict the query's value) or extended (also predict
+#   the next symbol and its value)
+# NEXT_SYMBOL_SOURCE: context (baseline) or global (experimental), extended only
+# GENERATIONS: number of generations; >1 needs GEN_DATASET_SIZE
+# GEN_DATASET_SIZE: fixed pool size; unset keeps fresh sampling every step
+# GEN_REPLACE_FRAC: fraction of the pool regenerated each generation
+MODEL_VARIANT=${MODEL_VARIANT:-base}
+NEXT_SYMBOL_SOURCE=${NEXT_SYMBOL_SOURCE:-context}
+GENERATIONS=${GENERATIONS:-1}
+GEN_REPLACE_FRAC=${GEN_REPLACE_FRAC:-0.1}
+GEN_ARGS=()
+if [ -n "${GEN_DATASET_SIZE:-}" ]; then
+  GEN_ARGS=(--gen_dataset_size "$GEN_DATASET_SIZE")
+fi
+
 python -u -m src.main \
 --data_file data/omniglot_resnet18_randomized_order_s0.h5 \
 --mixing_coeffs 1.0 \
@@ -38,4 +54,9 @@ python -u -m src.main \
 --run omniglot50_rl5 \
 --ckpt_every 1000 \
 --init_seed $INIT_SEED \
+--model_variant "$MODEL_VARIANT" \
+--next_symbol_source "$NEXT_SYMBOL_SOURCE" \
+--generations "$GENERATIONS" \
+--gen_replace_frac "$GEN_REPLACE_FRAC" \
+"${GEN_ARGS[@]}" \
 --base_folder "$SAVE_FOLDER" 2>&1 | tee "$LOG_FILE"

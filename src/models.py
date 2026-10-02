@@ -615,6 +615,8 @@ class SequenceClassifier(eqx.Module):
   transformer: Transformer
 
   unembed: enn.Linear
+  # Extended variant only: predicts the next symbol's class at label positions.
+  symbol_unembed: Optional[enn.Linear]
   inference: bool
 
   def __init__(
@@ -629,6 +631,7 @@ class SequenceClassifier(eqx.Module):
     emb_init_scale: float = 0.02,
     pos_embedding_type: str = 'rope',
     sin_time: float = 10000.0,
+    num_symbol_classes: Optional[int] = None,
     **transformer_kwargs,
   ):
     super().__init__()
@@ -711,6 +714,17 @@ class SequenceClassifier(eqx.Module):
                                   out_features=num_classes, 
                                   use_bias=True)
 
+    if num_symbol_classes is None:
+      self.symbol_unembed = None
+    else:
+      # fold_in keeps the other parameters identical to a base model's init
+      self.symbol_unembed = CustomLinear(key=jrandom.fold_in(key, 1),
+                                         w_init='lecun_normal',
+                                         b_init=jax.nn.initializers.zeros,
+                                         in_features=embed_dim,
+                                         out_features=num_symbol_classes,
+                                         use_bias=True)
+
   def call_with_all_aux(
     self, examples: Array, labels: Array, *, key: Array, cache=dict(), cache_mask=dict()
   ) -> Array:
@@ -766,6 +780,11 @@ class SequenceClassifier(eqx.Module):
 
     # Discard labels predicted for labels, i.e., undo interleaving.
     assign_fn('out', r['unembedding'][0::2, :])
+
+    # Symbol logits at label positions: the last one (at the query's label)
+    # predicts the next symbol in the extended variant.
+    if self.symbol_unembed is not None:
+      assign_fn('symbol_out', jax.vmap(self.symbol_unembed)(r['transformer_output']['out'][1::2, :]))
 
     return r
 

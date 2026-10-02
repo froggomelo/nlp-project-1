@@ -27,6 +27,8 @@ class ItemType(IntEnum):
   BURSTY = 1
   DISTRACTOR = 2
   QUERY = 3
+  # Next symbol after the query, only used by the extended model variant.
+  NEXT = 4
 
 
 def get_constant_burst_seq_idxs(
@@ -39,6 +41,7 @@ def get_constant_burst_seq_idxs(
   distractor: bool = True,
   no_support: bool = False,
   unique_rest: bool = False,
+  next_symbol: Optional[str] = None,
 ):
   """Samples a batch of sequences per various parameters
 
@@ -55,9 +58,13 @@ def get_constant_burst_seq_idxs(
     unique_rest: whether or not to make the every item in context (besides
       bursts and distractors) unique. Note when unique_rest is True, the
       query will not appear in the non-bursty context
+    next_symbol: if not None, append a next symbol (ItemType.NEXT) after the
+      query, for the extended model. 'context' picks uniformly among the
+      distinct classes in context; 'global' draws from class_distr.
 
   return:
-    a dictionary with two num_seqs x context_len+1 arrays:
+    a dictionary with two num_seqs x context_len+1 arrays (context_len+2
+    if next_symbol is given):
     class_idxs: idxs from `classes` with the given conditions
     idx_types: ItemType's indicating which samples are from bursts, distractors, etc.
   """
@@ -131,9 +138,32 @@ def get_constant_burst_seq_idxs(
       shuffle_key, context_type, axis=0, independent=True
     )
 
-  return {'class_idxs': classes[jnp.concatenate([context, query]).T], 
-          'idx_types': jnp.concatenate([context_type, 
-                                        jnp.ones((1,num_seqs), dtype=int)*ItemType.QUERY]).T}
+  seq = jnp.concatenate([context, query])
+  seq_type = jnp.concatenate([context_type,
+                              jnp.ones((1,num_seqs), dtype=int)*ItemType.QUERY])
+
+  if next_symbol is not None:
+    # fold_in (rather than an extra split above) keeps base sequences unchanged
+    next_key = jax.random.fold_in(key, ItemType.NEXT)
+    if next_symbol == 'context':
+      # Uniform over the distinct classes in context: only the first
+      # occurrence of each class is eligible.
+      ctx = context.T  # [num_seqs, context_len]
+      earlier_same = (ctx[:, :, None] == ctx[:, None, :]) & jnp.tril(
+        jnp.ones((context_len, context_len), dtype=bool), k=-1)
+      first_occ = ~jnp.any(earlier_same, axis=-1)
+      pos = jax.random.categorical(next_key, jnp.log(first_occ.astype(float)), axis=-1)
+      nxt = ctx[jnp.arange(num_seqs), pos][None, :]
+    elif next_symbol == 'global':
+      nxt = jax.random.categorical(next_key, jnp.log(class_distr), shape=(1, num_seqs))
+    else:
+      raise NotImplementedError(next_symbol)
+    seq = jnp.concatenate([seq, nxt])
+    seq_type = jnp.concatenate([seq_type,
+                                jnp.ones((1,num_seqs), dtype=int)*ItemType.NEXT])
+
+  return {'class_idxs': classes[seq.T],
+          'idx_types': seq_type.T}
 
 
 def get_mixed_seq_idxs(
@@ -209,7 +239,7 @@ def get_exemplar_inds(
     exemplar_inds = jnp.where(idx_types == ItemType.DISTRACTOR, distractor_indices[:, None], exemplar_inds)
 
     # Set the other indices
-    other_mask = idx_types == ItemType.OTHER
+    other_mask = (idx_types == ItemType.OTHER) | (idx_types == ItemType.NEXT)
     other_indices = allowed_inds[jax.random.randint(key, shape=idx_types.shape, minval=0, maxval=len(allowed_inds))]
     exemplar_inds = jnp.where(other_mask, other_indices, exemplar_inds)
 
@@ -283,14 +313,45 @@ def fewshot_fliplabels(
   # set query indices to distractor class labels
   out = out.at[query_idxs].set(distractor_class_idxs[::burstiness])
   return out.reshape(*class_idxs.shape)
-  
-  
+
+
+def label_next_symbol(
+  key: Array,
+  class_idxs: NDArray[Any, Int],
+  labels: NDArray[Any, Int],
+  num_labels: Optional[int],):
+  """Labels the final (ItemType.NEXT) item of each sequence.
+
+  If the next symbol's class occurs in context, it gets that item's label, so
+  the value can be copied in-context. Otherwise it gets a label not used in
+  context (drawn uniformly from 0..num_labels-1), or, when num_labels is None
+  (no relabeling), its class index.
+
+  Returns:
+    labels with the final column replaced, and a [batch_size] bool array
+    saying whether the next symbol occurs in context.
+  """
+  ctx_classes = class_idxs[:, :-2]
+  ctx_labels = labels[:, :-2]
+  match = ctx_classes == class_idxs[:, -1:]
+  n_in_ctx = jnp.any(match, axis=-1)
+  copied = ctx_labels[jnp.arange(labels.shape[0]), jnp.argmax(match, axis=-1)]
+  if num_labels is None:
+    fresh = class_idxs[:, -1]
+  else:
+    used = jnp.any(jax.nn.one_hot(ctx_labels, num_labels) > 0, axis=1)
+    fresh = jax.random.categorical(key, jnp.where(used, -jnp.inf, 0.0), axis=-1)
+  return labels.at[:, -1].set(jnp.where(n_in_ctx, copied, fresh)), n_in_ctx
+
+
 def make_data_sampler(
   class_sampler: Callable, 
   exemplar_sampler: Callable, 
   fs_relabel: Optional[str] = None,
   noise_scale: float = 0.0,
-  assign_query_label_random: bool = False,):
+  assign_query_label_random: bool = False,
+  next_symbol: bool = False,
+  num_labels: Optional[int] = None,):
   """Build a function which samples data as specified.
 
   Args:
@@ -304,7 +365,15 @@ def make_data_sampler(
         exemplars. Defaults to 0.0 (no noise).
       assign_query_label_random (bool, optional): Whether to assign the query 
         label to a random exemplar in-context. Defaults to False.
+      next_symbol (bool, optional): Whether sequences end with a next symbol
+        (extended model). If so, it is labeled by `label_next_symbol` and the
+        output also contains 'n_in_ctx'. Defaults to False.
+      num_labels (Optional[int], optional): Number of relabeled labels, used
+        to pick fresh labels for next symbols not seen in context.
   """
+  assert not (next_symbol and assign_query_label_random), \
+    "assign_query_label_random assumes the query is the final item"
+
   def sample(key: Array, data):
     keys = jax.random.split(key, 3)
     class_out = class_sampler(keys[0])
@@ -323,10 +392,16 @@ def make_data_sampler(
       labels = fewshot_fliplabels(**class_out)
     elif fs_relabel is not None:
       labels = fewshot_relabel(keys[2], labels=fs_relabel, **class_out)
+    out = dict()
+    if next_symbol:
+      labels, out['n_in_ctx'] = label_next_symbol(
+        jax.random.fold_in(key, ItemType.NEXT), class_out['class_idxs'], labels,
+        num_labels if fs_relabel is not None else None)
     examples = data[class_out['class_idxs'], exemplar_inds]
     if noise_scale > 0:
       _, noise_key = jax.random.split(key)
       examples += noise_scale * jax.random.normal(noise_key, examples.shape)
-    return {'examples': examples, 'labels': labels}
+    return {'examples': examples, 'labels': labels,
+            'symbols': class_out['class_idxs'], **out}
   return sample
 

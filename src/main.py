@@ -37,6 +37,7 @@ import optax
 from src import samplers
 from src import main_utils
 from src import opto
+from src import generations
 
 
 ALL_TRAIN_METRICS = ['loss', 'grad_norm', 'grad_batch_stddev']
@@ -63,6 +64,15 @@ def ce(pred_y: Array, y: Array) -> Array:
   return -jnp.sum(pred_y * onehot_y, axis=-1)
 
 
+def extended_ces(out, y: Array, s: Array) -> Tuple[Array, Array, Array]:
+  '''Per-sequence CEs of the extended variant's 3 predictions: the query's
+  value (at the query), the next symbol (at the query's label) and the next
+  symbol's value (at the next symbol).'''
+  return (ce(out['out'][:, -2, :], y[:, -2]),
+          ce(out['symbol_out'][:, -1, :], s[:, -1]),
+          ce(out['out'][:, -1, :], y[:, -1]))
+
+
 # Uncomment this jit if looking to microbatch
 # @eqx.filter_jit
 # Remember that this only yields the grad w.r.t. first positional arg!
@@ -73,13 +83,18 @@ def compute_loss(
   weight_decay: float,
   x: Array, 
   y: Array, 
-  keys: Array
+  keys: Array,
+  s: Array = None
 ) -> Array:
-  pred_y = jax.vmap(partial(fwd_fn, model=model))(x=x, y=y, key=keys)['out']
-  query_ce = ce(pred_y[:, -1, :], y[:, -1])
+  '''s (symbols) is only given for the extended variant.'''
+  out = jax.vmap(partial(fwd_fn, model=model))(x=x, y=y, key=keys)
+  if s is None:
+    data_loss = ce(out['out'][:, -1, :], y[:, -1]).mean()
+  else:
+    data_loss = jnp.mean(jnp.stack(extended_ces(out, y, s)))
   # Hacky, but prevents nan'ing gradients of 0 (which biases are initialized too)
   weight_norm = jnp.sum(jnp.stack(jax.tree_map(lambda x: jnp.linalg.norm(jnp.where(x != 0, x, 0)), jax.tree_leaves(eqx.filter(model, eqx.is_array)))))
-  return query_ce.mean() + weight_decay * weight_norm
+  return data_loss + weight_decay * weight_norm
 
 
 # Comment this jit if looking to microbatch
@@ -94,6 +109,7 @@ def train_step(
   x: Array,
   y: Array,
   key: Array,
+  s: Array = None,
 ) -> Tuple[Array, eqx.Module, Array]:
   keys = jax.random.split(key, x.shape[0])
 
@@ -104,10 +120,11 @@ def train_step(
     use_x = x[i:i+microbs]
     use_y = y[i:i+microbs]
     use_keys = keys[i:i+microbs]
+    use_s = None if s is None else s[i:i+microbs]
     # For some reason using keywords for the argument on the next line breaks things
     # I think it has to do with how equinox implements the value_and_grad wrapper
     # Namely, it "priveleges" 'x' I think
-    mini_loss, mini_grad = compute_loss(model, fwd_fn, weight_decay, use_x, use_y, use_keys)
+    mini_loss, mini_grad = compute_loss(model, fwd_fn, weight_decay, use_x, use_y, use_keys, use_s)
     losses.append(mini_loss)
     grads.append(mini_grad)
 
@@ -134,17 +151,23 @@ def eval_step(
   fwd_fn,
   x: Array, 
   y: Array, 
-  key: Array
+  key: Array,
+  s: Array = None
 ) -> Tuple[Array, Array]:
+  '''s (symbols) is only given for the extended variant, in which case the
+  standard metrics are computed at the query (second to last position).'''
 
   keys = jax.random.split(key, x.shape[0])
-  pred_y = jax.vmap(partial(fwd_fn, model=model))(x=x, y=y, key=keys)['out']
+  fwd = jax.vmap(partial(fwd_fn, model=model))(x=x, y=y, key=keys)
+  pred_y = fwd['out']
+  full_y, full_pred_y = y, pred_y
+  q = -1 if s is None else -2
 
-  in_context_mask = jnp.sum(jax.nn.one_hot(y[:, :-1], pred_y.shape[-1]), axis=1) > 0
+  in_context_mask = jnp.sum(jax.nn.one_hot(y[:, :q], pred_y.shape[-1]), axis=1) > 0
 
-  # We don't care about non-final sequence outputs from hereon out
-  y = y[:, -1]
-  pred_y = pred_y[:, -1, :]
+  # We don't care about non-query sequence outputs from hereon out
+  y = y[:, q]
+  pred_y = pred_y[:, q, :]
 
   loss = ce(pred_y, y)
   accs = accuracy(pred_y, y)
@@ -170,25 +193,46 @@ def eval_step(
 
   use_context_prob = jnp.sum(in_context_mask*prob_y, axis=-1)
 
-  return {'loss': loss, 
-          'acc': accs, 
-          'in_context_acc': fsl_accs, 
-          'out_context_acc': out_context_accs,
-          'prob': output_prob,
-          'in_context_prob': fsl_output_prob,
-          'out_context_prob': out_context_prob,
-          'use_context_prob': use_context_prob}
+  metrics = {'loss': loss, 
+             'acc': accs, 
+             'in_context_acc': fsl_accs, 
+             'out_context_acc': out_context_accs,
+             'prob': output_prob,
+             'in_context_prob': fsl_output_prob,
+             'out_context_prob': out_context_prob,
+             'use_context_prob': use_context_prob}
+  if s is None:
+    return metrics
+
+  # Extended variant (teacher-forced): next symbol and its value
+  _, loss_symbol, loss_next_value = extended_ces(fwd, full_y, s)
+  symbol_pred = jnp.argmax(fwd['symbol_out'][:, -1, :], axis=-1)
+  symbol_accs = symbol_pred == s[:, -1]
+  next_value_accs = accuracy(full_pred_y[:, -1, :], full_y[:, -1])
+  metrics.update({
+    'loss_symbol': loss_symbol,
+    'loss_next_value': loss_next_value,
+    'loss_total': (loss + loss_symbol + loss_next_value) / 3,
+    'symbol_acc': symbol_accs,
+    'next_value_acc': next_value_accs,
+    'seq_acc': accs & symbol_accs & next_value_accs,
+    # How often the predicted next symbol is one of the context symbols
+    'symbol_pred_in_ctx': jnp.any(s[:, :-2] == symbol_pred[:, None], axis=-1),
+    'next_in_ctx': jnp.any(s[:, :-2] == s[:, -1:], axis=-1),
+  })
+  return metrics
 
 
 def make_batched_fn(fn, batch_size):
-  def batched_fn(model, x, y, key):
+  def batched_fn(model, x, y, key, s=None):
     total = x.shape[0]
     metrics = dict()
     seed = key
     for it in range(0, total, batch_size):
       seed, use = jax.random.split(seed)
       cap = min(it+batch_size, total)
-      out = fn(model=model, x=x[it:cap], y=y[it:cap], key=use)
+      out = fn(model=model, x=x[it:cap], y=y[it:cap], key=use,
+               s=None if s is None else s[it:cap])
       for m in out:
         metrics.setdefault(m, []).append(out[m])
     for m in metrics:
@@ -202,17 +246,211 @@ def evaluate(
   fwd_fn,
   key: Array,
   eval_data,
-  eval_batch_size
+  eval_batch_size,
+  extended: bool = False
 ):
   seeds = jax.random.split(key, len(eval_data))
   eval_fn = make_batched_fn(partial(eval_step, fwd_fn=fwd_fn), eval_batch_size)
   retval = dict()
   for seed, k in zip(seeds, eval_data):
-    retval[k] = eval_fn(model, eval_data[k]['examples'], eval_data[k]['labels'], key=seed)
+    retval[k] = eval_fn(model, eval_data[k]['examples'], eval_data[k]['labels'], key=seed,
+                        s=eval_data[k]['symbols'] if extended else None)
     # Aggregate all query losses before exponentiating, including partial batches.
     # Keep a length-one array for the existing HDF5 metric logging interface.
     retval[k]['perplexity'] = jnp.exp(jnp.mean(retval[k]['loss']))[None]
+    if extended:
+      # Next value accuracy split by whether the next symbol is in context
+      # (nan when a split is empty, e.g. unseen symbols with next_symbol_source=context)
+      in_ctx = retval[k]['next_in_ctx']
+      correct = retval[k]['next_value_acc']
+      for name, sel in [('in_ctx', in_ctx), ('unseen', ~in_ctx)]:
+        count = jnp.sum(sel)
+        retval[k]['next_value_acc_' + name] = jnp.where(
+          count > 0, jnp.sum(correct & sel) / jnp.maximum(count, 1), jnp.nan)[None]
   return retval
+
+
+def train_generation(
+  opts,
+  model: eqx.Module,
+  optimizer: optax.GradientTransformation,
+  opt_state,
+  seeds,
+  start_iter: int,
+  sample_batch,
+  fwd_fn,
+  eval_data,
+  run_folder: str,
+  wandb_prefix: str = '',
+  wandb_step_offset: int = 0,
+):
+  '''Trains `model` for opts.train_iters sequences on batches from
+  `sample_batch` (a key -> batch fn), running evals and checkpoints according
+  to schedule. Writes log.h5 and checkpoints/ into `run_folder`.
+
+  Returns the trained model, optimizer state and the advanced seeds.
+  '''
+  extended = opts.model_variant == 'extended'
+  if opts.use_wandb:
+    import wandb
+  eval_model_seed = seeds['eval_model_seed']
+  train_data_seed = seeds['train_data_seed']
+  train_model_seed = seeds['train_model_seed']
+
+  ### Setup log.h5 ###
+
+  ckpt_folder = '/'.join([run_folder, 'checkpoints'])
+  os.makedirs(ckpt_folder, exist_ok=True)
+
+  eval_ind = np.searchsorted(opts.eval_sched, start_iter)
+  ckpt_ind = np.searchsorted(opts.ckpt_sched, start_iter)
+
+  train_metrics = {m: [] for m in ALL_TRAIN_METRICS}
+  # We'll always want train iters
+  train_metrics['iter'] = []
+
+  results = h5.File('/'.join([run_folder, 'log.h5']), 'a')
+  for m in train_metrics:
+    if 'train_{}'.format(m) not in results:
+      results.create_dataset('train_{}'.format(m), shape=(0,), maxshape=(None,), dtype=float)
+  if 'eval_iter' not in results:
+    results.create_dataset('eval_iter', shape=(0,), maxshape=(None,), dtype=int)
+  results.close()
+
+  ### MAIN TRAIN LOOP ###
+  # Runs eval and checkpoints according to schedule
+  # Note i = iterations = # sequences seen
+  
+  for i in range(start_iter, opts.train_iters, opts.train_bs):
+    if eval_ind < len(opts.eval_sched) and i >= opts.eval_sched[eval_ind]:
+      if not opts.suppress_output:
+        print('-'*10 + str(i))
+      eval_model_seed, current_eval_seed = jax.random.split(eval_model_seed, 2)
+      out = evaluate(model=model, 
+                      fwd_fn=fwd_fn, 
+                      key=current_eval_seed, 
+                      eval_data=eval_data, 
+                      eval_batch_size=opts.eval_bs,
+                      extended=extended)
+      results = h5.File('/'.join([run_folder, 'log.h5']), 'a')
+      for k in out:
+        for m in out[k]:
+          if not opts.suppress_output:
+            print(k, m, jnp.mean(out[k][m]))
+          if opts.use_wandb:
+            wandb.log({wandb_prefix + '-'.join([k, m]): jnp.mean(out[k][m]), 'iteration': i}, step=wandb_step_offset + i//opts.train_bs)
+          addr = '/'.join([k,m])
+          if addr in results:
+            results[addr].resize(results[addr].shape[0] + 1, axis=0)
+            results[addr][-1] = out[k][m]
+          else:
+            results.create_dataset(addr, data=jnp.broadcast_to(out[k][m], (1, len(out[k][m]))), maxshape=(None, len(out[k][m])))
+      results['eval_iter'].resize(results['eval_iter'].shape[0]+1, axis=0)
+      results['eval_iter'][-1] = i
+      if len(train_metrics['iter']) > 0:
+        if not opts.suppress_output:
+          print('-')
+        if opts.use_wandb:
+          wandb.log({**{wandb_prefix + m: train_metrics[m][-1] for m in ALL_TRAIN_METRICS}, 'iteration': i}, step=wandb_step_offset + i//opts.train_bs)
+        for m in train_metrics:
+          results['train_{}'.format(m)].resize(results['train_{}'.format(m)].shape[0]+len(train_metrics[m]), axis=0)
+          results['train_{}'.format(m)][-len(train_metrics[m]):] = train_metrics[m]
+          if not opts.suppress_output:
+            print(m, train_metrics[m][-1])
+          train_metrics[m] = []
+      results.close()
+      eval_ind += 1
+
+    if ckpt_ind < len(opts.ckpt_sched) and i >= opts.ckpt_sched[ckpt_ind]:
+      if not opts.suppress_output:
+        print("Checkpointing...", i)
+      ckpt = {'iter': i,
+              'seeds': {'eval_model_seed': eval_model_seed,
+                        'train_data_seed': train_data_seed,
+                        'train_model_seed': train_model_seed}, 
+              'opt_state': opt_state,
+              'model': model}
+      num = '{}'.format(i).zfill(11)
+      eqx.tree_serialise_leaves('/'.join([ckpt_folder, num+".eqx"]), ckpt)
+      if len(train_metrics['iter']) > 0:
+        if not opts.suppress_output:
+          print(train_metrics['iter'][-1], train_metrics['loss'][-1])
+      ckpt_ind += 1
+
+    # Train step -- the train_data_seed is split and passed along (a la functional
+    # programming)
+    train_data_seed, current_data_seed = jax.random.split(train_data_seed)
+    # batch is a dict with keys 'examples' and 'labels'
+    # 'examples' is [batch_size, train_context_len + 1, embedding_dim]
+    # 'labels' is [batch_size, train_context_len + 1]
+    # (the +1 is for the target/query)
+    batch = sample_batch(current_data_seed)
+
+    train_model_seed, current_model_seed = jax.random.split(train_model_seed)
+    metrics, model, opt_state = train_step(model=model, 
+                                            fwd_fn=fwd_fn,
+                                            optimizer=optimizer, 
+                                            opt_state=opt_state, 
+                                            microbs=opts.train_microbs, 
+                                            weight_decay=opts.weight_decay,
+                                            x=batch['examples'], 
+                                            y=batch['labels'], 
+                                            key=current_model_seed,
+                                            s=batch['symbols'] if extended else None)
+    train_metrics['iter'].append(i+opts.train_bs)
+    for m in metrics:
+      train_metrics[m].append(metrics[m])
+    if opts.use_wandb:
+      if i % 1000*opts.train_bs == 0:
+        # Ideally we'd log learning rate, but hard to access with jax
+        wandb.log({**{wandb_prefix + m: v for m, v in metrics.items()}, 'iteration': i}, step=wandb_step_offset + 1+i//opts.train_bs)
+
+  print("End of training")
+  eval_model_seed, current_eval_seed = jax.random.split(eval_model_seed, 2)
+  out = evaluate(model=model, 
+                  fwd_fn=fwd_fn,
+                  key=current_eval_seed, 
+                  eval_data=eval_data, 
+                  eval_batch_size=opts.eval_bs,
+                  extended=extended)
+  results = h5.File('/'.join([run_folder, 'log.h5']), 'a')
+  if len(train_metrics['iter']) > 0:
+    print('-')
+    for m in train_metrics:
+      results['train_{}'.format(m)].resize(results['train_{}'.format(m)].shape[0]+len(train_metrics[m]), axis=0)
+      results['train_{}'.format(m)][-len(train_metrics[m]):] = train_metrics[m]
+      print(m, train_metrics[m][-1])
+  for k in out:
+    for m in out[k]:
+      print(k, m, jnp.mean(out[k][m]))
+      if opts.use_wandb:
+        wandb.log({wandb_prefix + '-'.join([k, m]): jnp.mean(out[k][m]),
+                   'iteration': i + opts.train_bs}, step=wandb_step_offset + 1+i//opts.train_bs)
+      addr = '/'.join([k,m])
+      if addr in results:
+        results[addr].resize(results[addr].shape[0] + 1, axis=0)
+        results[addr][-1] = out[k][m]
+      else:
+        results.create_dataset(addr, data=jnp.broadcast_to(out[k][m], (1, len(out[k][m]))), maxshape=(None,len(out[k][m])))
+  results['eval_iter'].resize(results['eval_iter'].shape[0]+1, axis=0)
+  results['eval_iter'][-1] = i + opts.train_bs
+  results.close()
+
+  if opts.ckpt_sched[-1] <= opts.train_iters:
+    print("Checkpointing...", i + opts.train_bs)
+    ckpt = {'iter': i + opts.train_bs,
+            'seeds': {'eval_model_seed': eval_model_seed,
+                      'train_data_seed': train_data_seed,
+                      'train_model_seed': train_model_seed}, 
+            'opt_state': opt_state,
+            'model': model}
+    num = '{}'.format(i + opts.train_bs).zfill(11)
+    eqx.tree_serialise_leaves('/'.join([ckpt_folder, num+".eqx"]), ckpt)
+
+  seeds = {'eval_model_seed': eval_model_seed,
+           'train_data_seed': train_data_seed,
+           'train_model_seed': train_model_seed}
+  return model, opt_state, seeds
 
 
 def run_with_opts(opts):
@@ -299,11 +537,8 @@ def run_with_opts(opts):
   opts.train_seed = jax.random.PRNGKey(opts.train_seed)
   opts.eval_seed = jax.random.PRNGKey(opts.eval_seed)
 
-  if opts.ckpt_sched is not None:
-    ckpt_folder = '/'.join([run_folder, 'checkpoints'])
-    os.makedirs(ckpt_folder, exist_ok=True)
-  else:
-    opts.ckpt_sched = [2*opts.train_iters] # will never checkpoint
+  extended = opts.model_variant == 'extended'
+  next_symbol = opts.next_symbol_source if extended else None
 
   ### Make train data sampler ###
 
@@ -329,7 +564,8 @@ def run_with_opts(opts):
                                   burstiness=opts.pt_burstiness[i],
                                   distractor=smart_index(opts.pt_distract, i, 1),
                                   no_support=smart_index(opts.pt_no_support, i, 0),
-                                  unique_rest=smart_index(opts.pt_unique_rest, i, 0)))
+                                  unique_rest=smart_index(opts.pt_unique_rest, i, 0),
+                                  next_symbol=next_symbol))
   train_class_sampler = partial(samplers.get_mixed_seq_idxs, 
                             mix_probabilities=jnp.array(opts.mixing_coeffs), 
                             mix_substrate_fns=train_samplers)
@@ -344,7 +580,9 @@ def run_with_opts(opts):
     train_exemplar_sampler,
     fs_relabel=splits['relabeling']['train'],
     noise_scale=opts.noise_scale_train,
-    assign_query_label_random=opts.assign_query_label_random),
+    assign_query_label_random=opts.assign_query_label_random,
+    next_symbol=extended,
+    num_labels=opts.model_output_classes),
     data=data))
 
   train_data_seed, train_model_seed = jax.random.split(opts.train_seed, 2)
@@ -388,7 +626,8 @@ def run_with_opts(opts):
                                   burstiness=opts.pe_burstiness[i],
                                   distractor=smart_index(opts.pe_distract, i, 1),
                                   no_support=smart_index(opts.pe_no_support, i, 0),
-                                  unique_rest=smart_index(opts.pe_unique_rest, i, 0))
+                                  unique_rest=smart_index(opts.pe_unique_rest, i, 0),
+                                  next_symbol=next_symbol)
     allowed_inds = splits['exemplar'][opts.pe_exemplars[i]]
     eval_exemplar_sampler = partial(
       samplers.get_exemplar_inds,
@@ -399,7 +638,9 @@ def run_with_opts(opts):
       eval_exemplar_sampler,
       fs_relabel=splits['relabeling'][smart_index(opts.pe_fs_relabel_scheme, i, 'None')],
       noise_scale=smart_index(opts.pe_noise_scale, i, opts.noise_scale_train),
-      assign_query_label_random=smart_index(opts.pe_assign_query_label_random, i, 0))
+      assign_query_label_random=smart_index(opts.pe_assign_query_label_random, i, 0),
+      next_symbol=extended,
+      num_labels=opts.model_output_classes)
     eval_data[name] = eval_data_sampler(eval_data_seeds[i], data)
 
   if opts.save_eval_data is not None:
@@ -416,6 +657,8 @@ def run_with_opts(opts):
   # Includes logic for loading from checkpoints
 
   fwd_fn_to_use = opto.make_fn_from_opts(opts)
+  if extended:
+    assert fwd_fn_to_use is opto.default_model_fwd_fn, 'Optogenetic clamps are only supported for the base variant'
 
   if opts.load_from_ckpt is not None:
     assert opts.load_from_ckpt_cfg is not None, "Must specify config for loading model checkpoint"
@@ -447,149 +690,65 @@ def run_with_opts(opts):
       opt_state = ckpt['opt_state']
     model = ckpt['model']
 
-  ### Setup log.h5 ###
+  seeds = {'eval_model_seed': eval_model_seed,
+           'train_data_seed': train_data_seed,
+           'train_model_seed': train_model_seed}
+  train_kwargs = dict(opts=opts, optimizer=optimizer, fwd_fn=fwd_fn_to_use, eval_data=eval_data)
 
-  eval_ind = np.searchsorted(opts.eval_sched, start_iter)
-  ckpt_ind = np.searchsorted(opts.ckpt_sched, start_iter)
+  if opts.gen_dataset_size is None:
+    # Original setup: fresh training data every step, a single generation
+    train_generation(model=model, opt_state=opt_state, seeds=seeds, start_iter=start_iter,
+                     sample_batch=train_data_sampler, run_folder=run_folder, **train_kwargs)
+    return
 
-  train_metrics = {m: [] for m in ALL_TRAIN_METRICS}
-  # We'll always want train iters
-  train_metrics['iter'] = []
+  ### Model collapse pipeline ###
+  # Every generation trains on a fixed pool of gen_dataset_size sequences.
+  # Generation 0's pool is real data. Before each later generation, a
+  # gen_replace_frac portion of the pool is regenerated by the previous
+  # generation's model, so the pool size stays the same.
 
-  results = h5.File('/'.join([run_folder, 'log.h5']), 'a')
-  for m in train_metrics:
-    if 'train_{}'.format(m) not in results:
-      results.create_dataset('train_{}'.format(m), shape=(0,), maxshape=(None,), dtype=float)
-  if 'eval_iter' not in results:
-    results.create_dataset('eval_iter', shape=(0,), maxshape=(None,), dtype=int)
-  results.close()
+  num_train_classes = opts.class_split[0]
+  pool_seed, replace_seed = jax.random.split(jax.random.fold_in(opts.train_seed, 1))
+  pool = generations.build_pool(train_data_sampler, opts.gen_dataset_size, pool_seed)
+  if extended and opts.next_symbol_source == 'context':
+    assert bool(jnp.all(pool['n_in_ctx'])), 'Real next symbols must occur in context'
 
-  ### MAIN TRAIN LOOP ###
-  # Runs eval and checkpoints according to schedule
-  # Note i = iterations = # sequences seen
-  
-  for i in range(start_iter, opts.train_iters, opts.train_bs):
-    if eval_ind < len(opts.eval_sched) and i >= opts.eval_sched[eval_ind]:
-      if not opts.suppress_output:
-        print('-'*10 + str(i))
-      eval_model_seed, current_eval_seed = jax.random.split(eval_model_seed, 2)
-      out = evaluate(model=model, 
-                      fwd_fn=fwd_fn_to_use, 
-                      key=current_eval_seed, 
-                      eval_data=eval_data, 
-                      eval_batch_size=opts.eval_bs)
-      results = h5.File('/'.join([run_folder, 'log.h5']), 'a')
-      for k in out:
-        for m in out[k]:
-          if not opts.suppress_output:
-            print(k, m, jnp.mean(out[k][m]))
-          if opts.use_wandb:
-            wandb.log({'-'.join([k, m]): jnp.mean(out[k][m]), 'iteration': i}, step=i//opts.train_bs)
-          addr = '/'.join([k,m])
-          if addr in results:
-            results[addr].resize(results[addr].shape[0] + 1, axis=0)
-            results[addr][-1] = out[k][m]
-          else:
-            results.create_dataset(addr, data=jnp.broadcast_to(out[k][m], (1, len(out[k][m]))), maxshape=(None, len(out[k][m])))
-      results['eval_iter'].resize(results['eval_iter'].shape[0]+1, axis=0)
-      results['eval_iter'][-1] = i
-      if len(train_metrics['iter']) > 0:
-        if not opts.suppress_output:
-          print('-')
-        if opts.use_wandb:
-          wandb.log({**{m: train_metrics[m][-1] for m in ALL_TRAIN_METRICS}, 'iteration': i}, step=i//opts.train_bs)
-        for m in train_metrics:
-          results['train_{}'.format(m)].resize(results['train_{}'.format(m)].shape[0]+len(train_metrics[m]), axis=0)
-          results['train_{}'.format(m)][-len(train_metrics[m]):] = train_metrics[m]
-          if not opts.suppress_output:
-            print(m, train_metrics[m][-1])
-          train_metrics[m] = []
-      results.close()
-      eval_ind += 1
+  init_model, init_opt_state = model, opt_state
+  ref_hist = None
+  wandb_gen_steps = opts.train_iters // opts.train_bs + 2
+  gen_h5 = '/'.join([run_folder, 'generations.h5'])
+  for g in range(opts.generations):
+    gen_folder = '/'.join([run_folder, 'gen_{}'.format(g)])
+    os.makedirs(gen_folder, exist_ok=True)
+    if g > 0:
+      print("Generation {}: regenerating {} of the pool with generation {}'s model".format(
+        g, opts.gen_replace_frac, g-1))
+      pool = generations.replace_portion(pool, model, fwd_fn_to_use, opts, data,
+                                         splits['exemplar']['train'], num_train_classes,
+                                         g, jax.random.fold_in(replace_seed, g))
+      if opts.gen_init == 'fresh':
+        model, opt_state = init_model, init_opt_state
 
-    if ckpt_ind < len(opts.ckpt_sched) and i >= opts.ckpt_sched[ckpt_ind]:
-      if not opts.suppress_output:
-        print("Checkpointing...", i)
-      ckpt = {'iter': i,
-              'seeds': {'eval_model_seed': eval_model_seed,
-                        'train_data_seed': train_data_seed,
-                        'train_model_seed': train_model_seed}, 
-              'opt_state': opt_state,
-              'model': model}
-      num = '{}'.format(i).zfill(11)
-      eqx.tree_serialise_leaves('/'.join([ckpt_folder, num+".eqx"]), ckpt)
-      if len(train_metrics['iter']) > 0:
-        if not opts.suppress_output:
-          print(train_metrics['iter'][-1], train_metrics['loss'][-1])
-      ckpt_ind += 1
-
-    # Train step -- the train_data_seed is split and passed along (a la functional
-    # programming)
-    train_data_seed, current_data_seed = jax.random.split(train_data_seed)
-    # batch is a dict with keys 'examples' and 'labels'
-    # 'examples' is [batch_size, train_context_len + 1, embedding_dim]
-    # 'labels' is [batch_size, train_context_len + 1]
-    # (the +1 is for the target/query)
-    batch = train_data_sampler(current_data_seed)
-
-    train_model_seed, current_model_seed = jax.random.split(train_model_seed)
-    metrics, model, opt_state = train_step(model=model, 
-                                            fwd_fn=fwd_fn_to_use,
-                                            optimizer=optimizer, 
-                                            opt_state=opt_state, 
-                                            microbs=opts.train_microbs, 
-                                            weight_decay=opts.weight_decay,
-                                            x=batch['examples'], 
-                                            y=batch['labels'], 
-                                            key=current_model_seed)
-    train_metrics['iter'].append(i+opts.train_bs)
-    for m in metrics:
-      train_metrics[m].append(metrics[m])
+    scalars, hists = generations.pool_metrics(pool, g, opts, num_train_classes, ref_hist)
+    if g == 0 and extended:
+      ref_hist = hists['next_symbol_hist']
+    generations.append_to_h5(gen_h5, g, scalars, hists)
+    for m in scalars:
+      print('gen', g, m, scalars[m])
     if opts.use_wandb:
-      if i % 1000*opts.train_bs == 0:
-        # Ideally we'd log learning rate, but hard to access with jax
-        wandb.log({**metrics, 'iteration': i}, step=1+i//opts.train_bs)
+      wandb.log({'pool/' + m: v for m, v in scalars.items()}, step=g*wandb_gen_steps)
+    np.savez('/'.join([gen_folder, 'pool_meta.npz']),
+             **{k: np.asarray(pool[k]) for k in ['labels', 'symbols', 'origin_gen']})
 
-  print("End of training")
-  eval_model_seed, current_eval_seed = jax.random.split(eval_model_seed, 2)
-  out = evaluate(model=model, 
-                  fwd_fn=fwd_fn_to_use,
-                  key=current_eval_seed, 
-                  eval_data=eval_data, 
-                  eval_batch_size=opts.eval_bs)
-  results = h5.File('/'.join([run_folder, 'log.h5']), 'a')
-  if len(train_metrics['iter']) > 0:
-    print('-')
-    for m in train_metrics:
-      results['train_{}'.format(m)].resize(results['train_{}'.format(m)].shape[0]+len(train_metrics[m]), axis=0)
-      results['train_{}'.format(m)][-len(train_metrics[m]):] = train_metrics[m]
-      print(m, train_metrics[m][-1])
-  for k in out:
-    for m in out[k]:
-      print(k, m, jnp.mean(out[k][m]))
-      if opts.use_wandb:
-        wandb.log({'-'.join([k, m]): jnp.mean(out[k][m]),
-                   'iteration': i + opts.train_bs}, step=1+i//opts.train_bs)
-      addr = '/'.join([k,m])
-      if addr in results:
-        results[addr].resize(results[addr].shape[0] + 1, axis=0)
-        results[addr][-1] = out[k][m]
-      else:
-        results.create_dataset(addr, data=jnp.broadcast_to(out[k][m], (1, len(out[k][m]))), maxshape=(None,len(out[k][m])))
-  results['eval_iter'].resize(results['eval_iter'].shape[0]+1, axis=0)
-  results['eval_iter'][-1] = i + opts.train_bs
-  results.close()
-
-  if opts.ckpt_sched[-1] <= opts.train_iters:
-    print("Checkpointing...", i + opts.train_bs)
-    ckpt = {'iter': i + opts.train_bs,
-            'seeds': {'eval_model_seed': eval_model_seed,
-                      'train_data_seed': train_data_seed,
-                      'train_model_seed': train_model_seed}, 
-            'opt_state': opt_state,
-            'model': model}
-    num = '{}'.format(i + opts.train_bs).zfill(11)
-    eqx.tree_serialise_leaves('/'.join([ckpt_folder, num+".eqx"]), ckpt)
+    gen_seeds = {k: jax.random.fold_in(v, g) for k, v in seeds.items()}
+    model, opt_state, _ = train_generation(
+      model=model, opt_state=opt_state, seeds=gen_seeds,
+      start_iter=start_iter if g == 0 else 0,
+      sample_batch=generations.make_pool_sampler(pool, opts.train_bs),
+      run_folder=gen_folder,
+      wandb_prefix='gen{}/'.format(g) if opts.generations > 1 else '',
+      wandb_step_offset=g*wandb_gen_steps,
+      **train_kwargs)
 
 
 if __name__ == "__main__":
