@@ -253,7 +253,8 @@ def fewshot_relabel(
   class_idxs: NDArray[Any, Int], 
   idx_types: NDArray[Any, Int],
   labels = jnp.array([[0,1]]),
-  flip_labels: bool = False,):
+  flip_labels: bool = False,
+  num_labels: Optional[int] = None,):
   """Relabel class idxs randomly per sequence.
 
   We randomly pick ItemType.BURSTY, ItemType.DISTRACTOR -> fewshot_labels
@@ -263,6 +264,10 @@ def fewshot_relabel(
   class_idxs: The output, shape [batch_size, context_len+1]
   idx_types: An array of ItemTypes (in case of clever picking), shape [batch_size, context_len+1]
   labels: Labels to choose from, shape [1, n_labels]
+  num_labels: If given, ItemType.OTHER items (present when context_len >
+    2 * burstiness) get a random label in 0..num_labels-1 not used by the
+    pair, instead of keeping their class index (which can exceed the label
+    range). Only the bursty items then carry the query's label.
   """
   assert len(labels) >= 1, "At least one label pair needed for fewshot relabeling"
   label_choice_key, order_choice_key = jax.random.split(key)
@@ -281,6 +286,12 @@ def fewshot_relabel(
   out = jnp.where(idx_types == ItemType.DISTRACTOR, assn[:, 1][:, None], out)
   # Assign queries to the first label.
   out = jnp.where(idx_types == ItemType.QUERY, assn[:, 0][:, None], out)
+  if num_labels is not None:
+    used = jnp.any(jax.nn.one_hot(assn, num_labels) > 0, axis=1)  # [batch_size, num_labels]
+    spare_logits = jnp.where(used, -jnp.inf, 0.0)[:, None, :]
+    spare = jax.random.categorical(jax.random.fold_in(key, ItemType.OTHER),
+                                   jnp.broadcast_to(spare_logits, out.shape + (num_labels,)), axis=-1)
+    out = jnp.where(idx_types == ItemType.OTHER, spare, out)
   return out
 
 def fewshot_fliplabels(
@@ -369,7 +380,8 @@ def make_data_sampler(
         (extended model). If so, it is labeled by `label_next_symbol` and the
         output also contains 'n_in_ctx'. Defaults to False.
       num_labels (Optional[int], optional): Number of relabeled labels, used
-        to pick fresh labels for next symbols not seen in context.
+        to pick fresh labels for next symbols not seen in context and for
+        context items outside the burst and distractor.
   """
   assert not (next_symbol and assign_query_label_random), \
     "assign_query_label_random assumes the query is the final item"
@@ -391,7 +403,7 @@ def make_data_sampler(
     if fs_relabel is not None and fs_relabel == 'flip':
       labels = fewshot_fliplabels(**class_out)
     elif fs_relabel is not None:
-      labels = fewshot_relabel(keys[2], labels=fs_relabel, **class_out)
+      labels = fewshot_relabel(keys[2], labels=fs_relabel, num_labels=num_labels, **class_out)
     out = dict()
     if next_symbol:
       labels, out['n_in_ctx'] = label_next_symbol(

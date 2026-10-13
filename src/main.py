@@ -52,6 +52,51 @@ def smart_index(arr_maybe_none, i, default):
     return arr_maybe_none[i]
 
 
+def make_train_data_sampler(opts, data, splits):
+  '''Returns a jitted key -> batch fn drawing fresh real training sequences.'''
+  extended = opts.model_variant == 'extended'
+  next_symbol = opts.next_symbol_source if extended else None
+
+  zipf_ranks = jnp.arange(1, opts.class_split[0]+1, dtype=jnp.float32)
+  zipf_probs = 1 / zipf_ranks**opts.zipf_alpha
+  train_class_distr = zipf_probs / jnp.sum(zipf_probs)
+
+
+  assert len(opts.pt_burstiness) == len(opts.mixing_coeffs)
+
+  train_samplers = []
+  assert len(opts.mixing_coeffs) > 0, "Must have at least 1 train sampler"
+  for i in range(len(opts.mixing_coeffs)):
+    train_samplers.append(partial(samplers.get_constant_burst_seq_idxs,
+                                  classes=splits['class']['train'],
+                                  class_distr=train_class_distr,
+                                  num_seqs=opts.train_bs,
+                                  context_len=opts.train_context_len,
+                                  burstiness=opts.pt_burstiness[i],
+                                  distractor=smart_index(opts.pt_distract, i, 1),
+                                  no_support=smart_index(opts.pt_no_support, i, 0),
+                                  unique_rest=smart_index(opts.pt_unique_rest, i, 0),
+                                  next_symbol=next_symbol))
+  train_class_sampler = partial(samplers.get_mixed_seq_idxs,
+                            mix_probabilities=jnp.array(opts.mixing_coeffs),
+                            mix_substrate_fns=train_samplers)
+
+  train_exemplar_sampler = partial(
+    samplers.get_exemplar_inds,
+    allowed_inds=splits['exemplar']['train'],
+    match_query_and_distractors=opts.match_query_and_distractors)
+  # the below will now take in a key, and output a batch, all jitted up!
+  return jax.jit(partial(samplers.make_data_sampler(
+    train_class_sampler,
+    train_exemplar_sampler,
+    fs_relabel=splits['relabeling']['train'],
+    noise_scale=opts.noise_scale_train,
+    assign_query_label_random=opts.assign_query_label_random,
+    next_symbol=extended,
+    num_labels=opts.model_output_classes),
+    data=data))
+
+
 def accuracy(pred_y: Array, y: Array) -> Array:
   predicted_class = jnp.argmax(pred_y, axis=-1)
   return predicted_class == y
@@ -546,44 +591,7 @@ def run_with_opts(opts):
 
   splits = main_utils.get_splits_from_opts(opts, data.shape)
 
-  zipf_ranks = jnp.arange(1, opts.class_split[0]+1, dtype=jnp.float32)
-  zipf_probs = 1 / zipf_ranks**opts.zipf_alpha
-  train_class_distr = zipf_probs / jnp.sum(zipf_probs)
-
-  
-  assert len(opts.pt_burstiness) == len(opts.mixing_coeffs)
-
-  train_samplers = []
-  assert len(opts.mixing_coeffs) > 0, "Must have at least 1 train sampler"
-  for i in range(len(opts.mixing_coeffs)):
-    train_samplers.append(partial(samplers.get_constant_burst_seq_idxs,
-                                  classes=splits['class']['train'],
-                                  class_distr=train_class_distr,
-                                  num_seqs=opts.train_bs,
-                                  context_len=opts.train_context_len, 
-                                  burstiness=opts.pt_burstiness[i],
-                                  distractor=smart_index(opts.pt_distract, i, 1),
-                                  no_support=smart_index(opts.pt_no_support, i, 0),
-                                  unique_rest=smart_index(opts.pt_unique_rest, i, 0),
-                                  next_symbol=next_symbol))
-  train_class_sampler = partial(samplers.get_mixed_seq_idxs, 
-                            mix_probabilities=jnp.array(opts.mixing_coeffs), 
-                            mix_substrate_fns=train_samplers)
-
-  train_exemplar_sampler = partial(
-    samplers.get_exemplar_inds,
-    allowed_inds=splits['exemplar']['train'],
-    match_query_and_distractors=opts.match_query_and_distractors)
-  # the below will now take in a key, and output a batch, all jitted up!
-  train_data_sampler = jax.jit(partial(samplers.make_data_sampler(
-    train_class_sampler,
-    train_exemplar_sampler,
-    fs_relabel=splits['relabeling']['train'],
-    noise_scale=opts.noise_scale_train,
-    assign_query_label_random=opts.assign_query_label_random,
-    next_symbol=extended,
-    num_labels=opts.model_output_classes),
-    data=data))
+  train_data_sampler = make_train_data_sampler(opts, data, splits)
 
   train_data_seed, train_model_seed = jax.random.split(opts.train_seed, 2)
   eval_data_seed, eval_model_seed = jax.random.split(opts.eval_seed, 2)
@@ -695,23 +703,46 @@ def run_with_opts(opts):
            'train_model_seed': train_model_seed}
   train_kwargs = dict(opts=opts, optimizer=optimizer, fwd_fn=fwd_fn_to_use, eval_data=eval_data)
 
+  # Runs after each generation trains; a no-op unless --circuit-discovery
+  find_circuits = lambda model, gen_folder, g: None
+  if opts.circuit_discovery:
+    # Imported here so runs without the flag don't need torch
+    from src import circuits
+    if fwd_fn_to_use is not opto.default_model_fwd_fn:
+      print("WARNING: circuit discovery ignores optogenetic clamps and analyses the unclamped weights")
+    # The same real sequences for every generation, so circuits stay comparable
+    circuit_prompts = generations.build_pool(train_data_sampler, opts.circuit_n_prompts,
+                                             jax.random.PRNGKey(opts.circuit_seed))
+    def find_circuits(model, gen_folder, g):
+      circuits.run_circuit_discovery(
+        model, opts, circuit_prompts, '/'.join([gen_folder, 'circuit']), data,
+        splits['exemplar']['train'], opts.class_split[0], gen=g,
+        h5_file='/'.join([run_folder, 'circuits.h5']))
+
   if opts.gen_dataset_size is None:
     # Original setup: fresh training data every step, a single generation
-    train_generation(model=model, opt_state=opt_state, seeds=seeds, start_iter=start_iter,
-                     sample_batch=train_data_sampler, run_folder=run_folder, **train_kwargs)
+    model, _, _ = train_generation(model=model, opt_state=opt_state, seeds=seeds, start_iter=start_iter,
+                                   sample_batch=train_data_sampler, run_folder=run_folder, **train_kwargs)
+    find_circuits(model, run_folder, 0)
     return
 
   ### Model collapse pipeline ###
-  # Every generation trains on a fixed pool of gen_dataset_size sequences.
-  # Generation 0's pool is real data. Before each later generation, a
-  # gen_replace_frac portion of the pool is regenerated by the previous
-  # generation's model, so the pool size stays the same.
+  # Generation 0 trains on a pool of gen_dataset_size (N) real sequences.
+  # Before each later generation, the previous generation's model generates
+  # new targets from real prompts:
+  #   replace: a fixed gen_replace_frac portion of the pool is regenerated, so
+  #     the pool stays at N and its real share stays 1 - gen_replace_frac.
+  #   accumulate: N new sequences are appended, so the pool grows by N.
 
   num_train_classes = opts.class_split[0]
   pool_seed, replace_seed = jax.random.split(jax.random.fold_in(opts.train_seed, 1))
   pool = generations.build_pool(train_data_sampler, opts.gen_dataset_size, pool_seed)
   if extended and opts.next_symbol_source == 'context':
     assert bool(jnp.all(pool['n_in_ctx'])), 'Real next symbols must occur in context'
+  real_pool = pool
+  synth_idx = generations.synthetic_indices(opts.gen_dataset_size, opts.gen_replace_frac,
+                                            jax.random.fold_in(replace_seed, 0))
+  gen_args = (fwd_fn_to_use, opts, data, splits['exemplar']['train'], num_train_classes)
 
   init_model, init_opt_state = model, opt_state
   ref_hist = None
@@ -721,11 +752,15 @@ def run_with_opts(opts):
     gen_folder = '/'.join([run_folder, 'gen_{}'.format(g)])
     os.makedirs(gen_folder, exist_ok=True)
     if g > 0:
-      print("Generation {}: regenerating {} of the pool with generation {}'s model".format(
-        g, opts.gen_replace_frac, g-1))
-      pool = generations.replace_portion(pool, model, fwd_fn_to_use, opts, data,
-                                         splits['exemplar']['train'], num_train_classes,
-                                         g, jax.random.fold_in(replace_seed, g))
+      gen_key = jax.random.fold_in(replace_seed, g)
+      if opts.gen_mode == 'accumulate':
+        print("Generation {}: adding {} sequences generated by generation {}'s model".format(
+          g, opts.gen_dataset_size, g-1))
+        pool = generations.accumulate(pool, real_pool, model, *gen_args, g, gen_key)
+      else:
+        print("Generation {}: regenerating {} of the pool with generation {}'s model".format(
+          g, opts.gen_replace_frac, g-1))
+        pool = generations.replace_portion(pool, synth_idx, model, *gen_args, g, gen_key)
       if opts.gen_init == 'fresh':
         model, opt_state = init_model, init_opt_state
 
@@ -749,6 +784,7 @@ def run_with_opts(opts):
       wandb_prefix='gen{}/'.format(g) if opts.generations > 1 else '',
       wandb_step_offset=g*wandb_gen_steps,
       **train_kwargs)
+    find_circuits(model, gen_folder, g)
 
 
 if __name__ == "__main__":

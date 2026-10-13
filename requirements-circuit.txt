@@ -1,0 +1,17 @@
+# Extra dependencies for --circuit-discovery (see docs/circuit_discovery.md).
+# auto-circuit needs Python 3.10 or newer. Install the base requirements first:
+#   python -m pip install -r requirements.txt -r requirements-circuit.txt
+#   python -m pip install --no-deps auto-circuit==1.0.1
+# auto-circuit is installed without its dependencies. Its full dependency list
+# pulls in tracr-pypi and other task-specific packages that are not needed here
+# and can move JAX off the pinned version.
+torch
+transformer-lens==2.9.0
+# transformer-lens 2.9 breaks with transformers 5 and with datasets 4 or newer
+transformers<5
+datasets<4
+einops
+ordered-set
+plotly
+blobfile
+vscode-tqdm

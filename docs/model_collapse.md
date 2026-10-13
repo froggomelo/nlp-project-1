@@ -30,9 +30,13 @@ With `global`, an experimental condition, the next symbol is drawn from the trai
 
 ## Collapse Pipeline
 
-Setting `--gen_dataset_size N` switches training to a fixed pool of N sequences. Generation 0 draws N real sequences once and trains on them. Before each later generation, a fraction `--gen_replace_frac` of the pool (default 0.1) is chosen uniformly at random. The previous generation's model regenerates the targets of those items, and they are written back in place. The pool size stays at N. Each generation trains for the same `--train_iters`, which gives every generation the same number of passes over its data.
+Setting `--gen_dataset_size N` switches training to a fixed pool of N sequences. Generation 0 draws N real sequences once and trains on them. Before each later generation, the previous generation's model generates new data. `--gen_mode` sets how that data enters the pool.
 
-Each regenerated item keeps its own real context and query as the prompt. Only the model outputs drift, which keeps the prompt distribution comparable across generations. Items can be chosen again in later generations. The real share of the pool decays as (1 − p) raised to the generation number, and synthetic errors compound when regenerated items are regenerated again.
+With `replace` (the default), a fixed set of floor(pN) items is chosen once, with p set by `--gen_replace_frac` (default 0.1). Before every later generation, the previous generation's model regenerates the targets of exactly those items, and they are written back in place. The pool size stays at N, and its real share stays at 1 − p from generation 1 onwards. Synthetic errors still compound, because each generation's synthetic items come from a model trained partly on the previous generation's synthetic items. `--gen_replace_frac 0` gives a real-data control and `--gen_replace_frac 1` full replacement.
+
+With `accumulate`, nothing is removed. Before each later generation, the previous generation's model generates one new sequence from the prompt of each of the N real items, and these are appended to the pool. At generation g the pool holds N × (g + 1) items, and the real share is 1 / (g + 1).
+
+Each generated item keeps a real context and query as the prompt. Only the model outputs drift, which keeps the prompt distribution comparable across generations. Each generation trains for the same `--train_iters`.
 
 Generation proceeds one token at a time. The base model regenerates `lq` only and serves as the control. The extended model samples `lq`, feeds it back, samples the next symbol's class, attaches a random training exemplar of that class, feeds it back, and samples `ln`. Every token is sampled from softmax(logits / T), with T set by `--gen_temperature` (default 1.0). `--gen_sampling argmax` replaces sampling with the most likely token and serves as an ablation. Generated symbols are restricted to training classes. Validation and test classes never enter the training pool as a result.
 
@@ -40,24 +44,26 @@ Each generation starts from the same initialisation by default. `--gen_init cont
 
 ## Running
 
-The run script reads the collapse settings from environment variables.
+`scripts/nlp_project_run.sh` takes no parameters and runs every experiment in order: the base model, the extended model, and then five collapse conditions for each variant, each over 6 generations with N = 20,000.
 
-```bash
-MODEL_VARIANT=extended GENERATIONS=3 GEN_DATASET_SIZE=20000 bash scripts/nlp_project_run.sh
-```
-
-| Variable | Default | Meaning |
+| Condition | Flags | Real share from generation 1 |
 |---|---|---|
-| `MODEL_VARIANT` | `base` | `base` or `extended` |
-| `NEXT_SYMBOL_SOURCE` | `context` | `context` or `global`, extended model only |
-| `GENERATIONS` | `1` | number of generations, values above 1 need `GEN_DATASET_SIZE` |
-| `GEN_DATASET_SIZE` | unset | pool size N, unset keeps fresh sampling every step |
-| `GEN_REPLACE_FRAC` | `0.1` | fraction of the pool regenerated per generation |
+| `real_only` | `--gen_replace_frac 0` | 100% |
+| `replace50` | `--gen_replace_frac 0.5` | 50% |
+| `replace90` | `--gen_replace_frac 0.9` | 10% |
+| `replace100` | `--gen_replace_frac 1.0` | 0% |
+| `accumulate` | `--gen_mode accumulate` | 1 / (g + 1) |
 
-The remaining options are passed to `src.main` directly.
+To run one experiment by hand, call `src.main` directly, for example with `--model_variant extended --generations 6 --gen_dataset_size 20000 --gen_replace_frac 0.5`, plus the shared flags in the script's `COMMON_ARGS`.
 
 | Flag | Default | Meaning |
 |---|---|---|
+| `--model_variant` | `base` | `base` or `extended` |
+| `--next_symbol_source` | `context` | `context` or `global`, extended model only |
+| `--generations` | `1` | number of generations, values above 1 need `--gen_dataset_size` |
+| `--gen_dataset_size` | unset | pool size N, unset keeps fresh sampling every step |
+| `--gen_mode` | `replace` | `replace` or `accumulate` |
+| `--gen_replace_frac` | `0.1` | replace mode: fraction p of the pool that is synthetic |
 | `--gen_sampling` | `sample` | `sample` or `argmax` |
 | `--gen_temperature` | `1.0` | sampling temperature T |
 | `--gen_init` | `fresh` | `fresh` or `continue` |
@@ -96,11 +102,11 @@ The extended model adds these evaluation metrics to each evaluator in `log.h5`. 
 
 ## Implementation
 
-`src/generations.py` holds the pool, the regeneration step, and the pool metrics. `src/main.py` contains the three-part loss, the extended evaluation, and the generation loop. The original training loop now sits in `train_generation`, which runs once per generation. `src/samplers.py` appends the next symbol and assigns its value. `src/models.py` adds the symbol head. `src/main_utils.py` defines the flags and checks invalid combinations.
+`src/generations.py` holds the pool, the replace and accumulate steps, and the pool metrics. `src/main.py` contains the three-part loss, the extended evaluation, and the generation loop. The original training loop now sits in `train_generation`, which runs once per generation. `src/samplers.py` appends the next symbol and assigns its value. `src/models.py` adds the symbol head. `src/main_utils.py` defines the flags and checks invalid combinations.
 
 ## Limitations
 
-Training logs only the combined loss. The three separate losses appear at evaluation. The optogenetic clamps in `src/opto.py` assume the base sequence layout, and the extended model rejects them. Pool batches are drawn with replacement. Equal passes per generation therefore hold in expectation rather than exactly. In `global` mode the value of an unseen next symbol is random, which caps `next_value_acc` below 1. Evaluation sets loaded with `--load_eval_data` carry no next symbols and cannot be used with the extended model.
+Training logs only the combined loss. The three separate losses appear at evaluation. The optogenetic clamps in `src/opto.py` assume the base sequence layout, and the extended model rejects them. Pool batches are drawn with replacement. Equal passes per generation therefore hold in expectation rather than exactly. In accumulation, every generation trains for the same number of iterations on a growing pool, so each item is seen fewer times as the pool grows. In `global` mode the value of an unseen next symbol is random, which caps `next_value_acc` below 1. Evaluation sets loaded with `--load_eval_data` carry no next symbols and cannot be used with the extended model.
 
 ## References
 

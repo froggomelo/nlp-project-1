@@ -99,25 +99,42 @@ def generate_sequences(model, fwd_fn, prompts, key, opts, data, exemplar_inds, n
   return {k: jnp.concatenate(v) for k, v in out.items()}
 
 
-def replace_portion(pool, model, fwd_fn, opts, data, exemplar_inds, num_train_classes, gen, key):
-  '''Replaces floor(p*N) uniformly chosen pool items with sequences generated
-  from their own prompts, marking them with origin_gen = gen. The pool size
-  stays N.'''
-  size = pool['labels'].shape[0]
-  num_replace = int(np.floor(opts.gen_replace_frac * size))
-  if num_replace == 0:
+def _n_in_ctx(symbols):
+  return jnp.any(symbols[:, :-2] == symbols[:, -1:], axis=-1)
+
+
+def synthetic_indices(size, frac, key):
+  '''The fixed floor(frac*size) pool items that replace mode regenerates every
+  generation. The other items stay real.'''
+  return jax.random.permutation(key, size)[:int(np.floor(frac * size))]
+
+
+def replace_portion(pool, idx, model, fwd_fn, opts, data, exemplar_inds, num_train_classes, gen, key):
+  '''Regenerates the pool items at `idx` from their own (real) prompts with
+  `model`, marking them with origin_gen = gen. The pool size stays N and the
+  items outside `idx` stay real.'''
+  if len(idx) == 0:
     return pool
-  perm_key, gen_key = jax.random.split(key)
-  idx = jax.random.permutation(perm_key, size)[:num_replace]
   new = generate_sequences(model, fwd_fn, {k: pool[k][idx] for k in POOL_KEYS},
-                           gen_key, opts, data, exemplar_inds, num_train_classes)
+                           key, opts, data, exemplar_inds, num_train_classes)
   pool = dict(pool)
   for k in POOL_KEYS:
     pool[k] = pool[k].at[idx].set(new[k])
   pool['origin_gen'] = pool['origin_gen'].at[idx].set(gen)
   if 'n_in_ctx' in pool:
-    pool['n_in_ctx'] = jnp.any(pool['symbols'][:, :-2] == pool['symbols'][:, -1:], axis=-1)
+    pool['n_in_ctx'] = _n_in_ctx(pool['symbols'])
   return pool
+
+
+def accumulate(pool, real_pool, model, fwd_fn, opts, data, exemplar_inds, num_train_classes, gen, key):
+  '''Appends one model-generated sequence per real pool item (generated from
+  that item's prompt), marked with origin_gen = gen. The pool grows by N.'''
+  new = generate_sequences(model, fwd_fn, {k: real_pool[k] for k in POOL_KEYS},
+                           key, opts, data, exemplar_inds, num_train_classes)
+  new['origin_gen'] = jnp.full(new['labels'].shape[0], gen, dtype=pool['origin_gen'].dtype)
+  if 'n_in_ctx' in pool:
+    new['n_in_ctx'] = _n_in_ctx(new['symbols']).astype(pool['n_in_ctx'].dtype)
+  return {k: jnp.concatenate([pool[k], new[k]]) for k in pool}
 
 
 def _label_err(symbols, labels, pos, ctx_end):
