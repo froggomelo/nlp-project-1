@@ -63,6 +63,10 @@ def _normalise_edges(edges):
 def _select_edges(edges, summary, max_edges):
   if max_edges < 1:
     raise ValueError('max_edges must be at least 1')
+  if any('in_circuit' in e for e in edges):
+    # ACDC: the circuit is the set of kept edges, not a top-k by score
+    circuit = [e for e in edges if e.get('in_circuit')]
+    return _normalise_edges(circuit[:max_edges]), len(circuit)
   recovery_edges = int(summary.get('n_edges_to_recover', len(edges)))
   n_shown = min(max(recovery_edges, 5), max_edges, len(edges))
   return _normalise_edges(edges[:n_shown]), recovery_edges
@@ -115,6 +119,11 @@ def _node_colour(node):
 
 
 def _subtitle(summary, n_shown, recovery_edges):
+  if 'threshold' in summary:
+    selected = 'ACDC circuit, tau = {:g}: {} edges'.format(summary['threshold'], recovery_edges)
+    if n_shown < recovery_edges:
+      selected += ' (top {} shown)'.format(n_shown)
+    return selected + '  |  {:.0%} recovery  |  width = KL increase when ablated'.format(summary['recovery'])
   recovery = 100 * float(summary.get('recovery_target', 0.8))
   if n_shown < recovery_edges:
     selected = 'top {} shown  |  first tested >= {:.0f}% recovery: {} edges'.format(
@@ -314,6 +323,8 @@ def render_circuit_views(edges, summary, prefix, title=None, max_edges=40,
                          formats=('png', 'pdf')):
   '''Writes both graph styles for one circuit and returns their paths.'''
   selected, recovery_edges = _select_edges(edges, summary, max_edges)
+  if not selected:
+    return []  # e.g. an ACDC circuit that kept no edges
   # Store the target explicitly so the subtitle is unambiguous when capped.
   summary = {**summary, 'n_edges_to_recover': recovery_edges, 'recovery_target': 0.8}
   prefix = Path(prefix)

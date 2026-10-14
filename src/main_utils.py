@@ -130,6 +130,7 @@ def create_parser():
   parser.add_argument('--circuit_n_prompts', default=512, type=int, help="Number of fixed real sequences used for circuit discovery. Half are used to score edges, half to measure faithfulness.")
   parser.add_argument('--circuit_bs', default=64, type=int, help="Batch size for circuit discovery.")
   parser.add_argument('--circuit_seed', default=7, type=int, help="Random seed for the fixed real circuit discovery sequences.")
+  parser.add_argument('--circuit_acdc_threshold', default=0.001, type=float, help="ACDC threshold tau on the KL divergence for the reported ACDC circuit.")
 
   return parser
 

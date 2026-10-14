@@ -3,6 +3,13 @@ Circuit discovery with auto-circuit (Miller et al., 2024,
 https://github.com/UFO-101/auto-circuit), run on the trained model of every
 generation when --circuit-discovery is set.
 
+Two methods run on every target:
+  - edge attribution patching: auto-circuit's mask-gradient scores, which rank
+    every edge, with a faithfulness curve over circuit sizes.
+  - ACDC (Conmy et al., 2023, https://github.com/ArthurConmy/Automatic-Circuit-Discovery):
+    the iterative pruning algorithm, run on auto-circuit's patchable graph. It
+    returns one circuit per threshold tau.
+
 auto-circuit works on PyTorch TransformerLens models, so the Equinox model is
 first copied into an equivalent HookedTransformer, whose logits are checked
 against the JAX model before any discovery. torch, transformer_lens and
@@ -32,7 +39,9 @@ from auto_circuit.metrics.prune_metrics.answer_diff import measure_answer_diff
 from auto_circuit.prune import run_circuits
 from auto_circuit.prune_algos.mask_gradient import mask_gradient_prune_scores
 from auto_circuit.types import AblationType, PatchType
-from auto_circuit.utils.graph_utils import edge_counts_util, patchable_model
+from auto_circuit.utils.ablation_activations import src_ablations
+from auto_circuit.utils.graph_utils import edge_counts_util, patch_mode, patchable_model, set_all_masks
+from auto_circuit.utils.tensor_ops import multibatch_kl_div
 from auto_circuit.visualize import draw_seq_graph
 
 from src import generations
@@ -45,6 +54,9 @@ EQUIVALENCE_TOL = 1e-4
 # A circuit "recovers" the behaviour once it restores this share of the logit diff
 RECOVERY_TARGET = 0.8
 MAX_DRAWN_EDGES = 40
+# ACDC thresholds on the KL divergence to the full model; the default is the reported circuit
+ACDC_THRESHOLD = 0.001
+ACDC_SWEEP = [0.0003, 0.001, 0.003, 0.01, 0.03, 0.1]
 
 
 class EmbeddingInputTransformer(HookedTransformer):
@@ -238,6 +250,86 @@ def discover(tl, pairs, bs, device):
   return model, scores, faithfulness
 
 
+def acdc(model, loader, threshold):
+  '''ACDC (Conmy et al., 2023) on auto-circuit's patchable model.
+
+  Follows the reference implementation: starting from the full model, edges are
+  visited in reverse topological order (output first, and for each destination
+  the latest sources first). Each edge is ablated by patching in its corrupt
+  activation. The ablation is kept, removing the edge, if it raises the KL
+  divergence of the output from the full model's by less than `threshold`;
+  otherwise the edge is restored and stays in the circuit. Uses the first
+  batch of `loader` only.
+
+  Returns {edge name: KL increase when the edge was tried}, the names of the
+  kept edges and the KL divergence of the final circuit.
+  '''
+  batch = next(iter(loader))
+  patch_outs = src_ablations(model, batch.corrupt, AblationType.RESAMPLE)
+  with t.inference_mode():
+    clean_logprobs = t.log_softmax(model(batch.clean)[model.out_slice], dim=-1)
+  edges = sorted(model.edges, key=lambda e: (-e.dest.layer, e.dest.name, -e.src.layer, e.src.name))
+  effects, kept, kl = {}, [], 0.0
+  set_all_masks(model, val=0.0)
+  with patch_mode(model, patch_outs):
+    for edge in edges:
+      edge.patch_mask(model).data[edge.patch_idx] = 1.0
+      with t.inference_mode():
+        out = model(batch.clean)[model.out_slice]
+      new_kl = multibatch_kl_div(t.log_softmax(out, dim=-1), clean_logprobs).item()
+      effects[edge.name] = new_kl - kl
+      if new_kl - kl < threshold:
+        kl = new_kl
+      else:
+        edge.patch_mask(model).data[edge.patch_idx] = 0.0
+        kept.append(edge.name)
+  set_all_masks(model, val=0.0)
+  return effects, kept, kl
+
+
+def circuit_logit_diffs(model, loader, kept):
+  '''Logit differences of the fully ablated model, of only the `kept` edges and of the full model.'''
+  scores = model.new_prune_scores()
+  for edge in model.edges:
+    if edge.name in kept:
+      scores[edge.dest.module_name][edge.patch_idx] = 1.0
+  counts = sorted({0, len(kept), len(model.edges)})
+  outs = run_circuits(model, loader, counts, scores,
+                      patch_type=PatchType.TREE_PATCH, ablation_type=AblationType.RESAMPLE)
+  diffs = dict(measure_answer_diff(model, loader, outs))
+  return diffs[0], diffs[len(kept)], diffs[len(model.edges)]
+
+
+def discover_acdc(model, pairs, threshold, sweep=ACDC_SWEEP):
+  '''Runs ACDC at every threshold in `sweep` and at `threshold`, the reported circuit.
+
+  The circuit is found on the discovery half of the pairs, in one batch as in
+  the reference implementation, and its faithfulness measured on the other half.
+  '''
+  discovery_loader, test_loader = _loaders(pairs, len(pairs['clean']))
+  runs = {}
+  for tau in sorted(set(sweep) | {threshold}):
+    effects, kept, kl = acdc(model, discovery_loader, tau)
+    ablated, circuit, full = circuit_logit_diffs(model, test_loader, kept)
+    runs[tau] = dict(threshold=tau, n_edges=len(kept), kl_divergence=kl,
+                     logit_diff_ablated=ablated, logit_diff_circuit=circuit, logit_diff_full=full,
+                     recovery=(circuit - ablated) / (full - ablated), effects=effects, kept=kept)
+  return runs
+
+
+def _summarise_acdc(model, runs, threshold):
+  '''Edge list and faithfulness summary of the reported ACDC circuit.'''
+  run = runs[threshold]
+  kept = set(run['kept'])
+  edges = sorted(({'edge': e.name, 'src': e.src.name, 'dest': e.dest.name,
+                   'score': run['effects'][e.name], 'in_circuit': e.name in kept} for e in model.edges),
+                 key=lambda e: (not e['in_circuit'], -abs(e['score'])))
+  scalars = {k: run[k] for k in ['threshold', 'n_edges', 'kl_divergence', 'recovery', 'logit_diff_full',
+                                 'logit_diff_ablated', 'logit_diff_circuit']}
+  sweep = [{k: v for k, v in r.items() if k not in ('effects', 'kept')} for r in runs.values()]
+  return edges, scalars, sweep
+
+
 def _summarise(model, scores, faithfulness):
   edges = sorted(({'edge': e.name, 'src': e.src.name, 'dest': e.dest.name,
                    'score': e.prune_score(scores).item()} for e in model.edges),
@@ -259,13 +351,16 @@ def run_circuit_discovery(model, opts, prompts, out_folder, data, exemplar_inds,
   Targets: the final value under both corruptions (value_exemplar_swap,
   value_label_swap) and, for the extended variant, the next symbol
   (next_symbol). Writes {target}_prune_scores.pt, _edges.json,
-  _faithfulness.json and _graph.html to out_folder, and appends summary
-  scalars (one row per generation) to h5_file if given.
+  _faithfulness.json and _graph.html for edge attribution patching and
+  {target}_acdc_edges.json and _acdc_faithfulness.json for ACDC to
+  out_folder, and appends summary scalars (one row per generation) to h5_file
+  if given.
   '''
   os.makedirs(out_folder, exist_ok=True)
   device = t.device('cuda' if t.cuda.is_available() else 'cpu')
   extended = opts.model_variant == 'extended'
   bs = getattr(opts, 'circuit_bs', 64)
+  acdc_threshold = getattr(opts, 'circuit_acdc_threshold', ACDC_THRESHOLD)
   # target name -> (output head, pair builder)
   targets = {'value_' + c: ('label', partial(value_pairs, model, prompts, extended, c))
              for c in ['exemplar_swap', 'label_swap']}
@@ -310,6 +405,20 @@ def run_circuit_discovery(model, opts, prompts, out_folder, data, exemplar_inds,
       '{} ({:.3f})'.format(e['edge'], e['score']) for e in edges[:10]))
     all_scalars.update({target + '/' + k: v for k, v in scalars.items()})
 
+    # ACDC on the same graph and prompt pairs
+    acdc_runs = discover_acdc(model_tl, pairs, acdc_threshold)
+    acdc_edges, acdc_scalars, acdc_sweep = _summarise_acdc(model_tl, acdc_runs, acdc_threshold)
+    with open(prefix + '_acdc_edges.json', 'w') as f:
+      json.dump(acdc_edges, f, indent='\t')
+    with open(prefix + '_acdc_faithfulness.json', 'w') as f:
+      json.dump({'summary': acdc_scalars, 'sweep': acdc_sweep}, f, indent='\t')
+    render_circuit_views(acdc_edges, acdc_scalars, prefix + '_acdc',
+                         title=target.replace('_', ' ').title() + ' (ACDC)', max_edges=MAX_DRAWN_EDGES)
+    print('circuit', target, 'ACDC sweep:', ', '.join(
+      'tau={} {} edges {:.0%}'.format(r['threshold'], r['n_edges'], r['recovery']) for r in acdc_sweep))
+    print('circuit', target, 'ACDC edges:', ', '.join(e['edge'] for e in acdc_edges if e['in_circuit']))
+    all_scalars.update({target + '/acdc_' + k: v for k, v in acdc_scalars.items()})
+
   if h5_file is not None:
     generations.append_to_h5(h5_file, gen, all_scalars, {})
   return all_scalars
@@ -345,10 +454,11 @@ if __name__ == '__main__':
   parser.add_argument('--n_prompts', default=512, type=int)
   parser.add_argument('--batch_size', default=64, type=int)
   parser.add_argument('--seed', default=7, type=int)
+  parser.add_argument('--acdc_threshold', default=ACDC_THRESHOLD, type=float)
   args = parser.parse_args()
 
   opts, model = load_checkpoint(args.checkpoint, args.run_config)
-  opts.circuit_bs, opts.circuit_seed = args.batch_size, args.seed
+  opts.circuit_bs, opts.circuit_seed, opts.circuit_acdc_threshold = args.batch_size, args.seed, args.acdc_threshold
   data = main_utils.get_data_from_opts(opts)
   splits = main_utils.get_splits_from_opts(opts, data.shape)
   prompts = real_prompts(opts, data, splits, args.n_prompts, args.seed)
