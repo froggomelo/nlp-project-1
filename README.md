@@ -54,6 +54,8 @@ Run all commands from the project folder. Use Python 3.9–3.12.
 
    Plots appear inline and are saved as PDFs in `results/figures/` (including `figure_3a.pdf`, `figure_3b.pdf`, and `figure_4a.pdf`). Replotting replaces PDFs with the same names.
 
+   `plotting/nlp_project.ipynb` plots the attention heads: attention maps, previous-token and induction head scores, their development over training, head ablations, and the heads across collapse generations. It finds the newest runs itself and saves its figures to `results/figures/nlp_project/`. [attention_plots.md](docs/attention_plots.md) describes the plots and their design decisions.
+
 ## Experiments
 
 `scripts/nlp_project_run.sh` runs these experiments in order:
@@ -77,6 +79,6 @@ Generated tokens are sampled from softmax(logits / T), with T = 1 by default. To
 
 Each collapse experiment writes `gen_<g>/log.h5`, `gen_<g>/checkpoints/` and `gen_<g>/pool_meta.npz` (labels, symbols and the generation that produced each item). `generations.h5` holds one row per generation of pool metrics: the share of real data, query label error, and for the extended model the next symbol's entropy, KL to generation 0, number of distinct symbols, top-10 and tail mass, and how often it falls outside its context.
 
-With circuit discovery on, every generation also writes `gen_<g>/circuit/`, and `circuits.h5` holds one row of circuit metrics per generation. Each generation's trained model is analysed on the same fixed real sequences. The value prediction gets two circuits, and the extended model adds a next-symbol circuit. [circuit_discovery.md](docs/circuit_discovery.md) explains the method, the design decisions, and the outputs.
+With circuit discovery on, every generation also writes `gen_<g>/circuit/`, and `circuits.h5` holds one row of circuit metrics per generation. Each generation's trained model is analysed on the same fixed real sequences. The value prediction gets two circuits, and the extended model adds a next-symbol circuit. Each circuit is found twice, with auto-circuit's edge attribution patching and with ACDC (Conmy et al., 2023). [circuit_discovery.md](docs/circuit_discovery.md) explains the method, the design decisions, and the outputs.
 
 See [model_collapse.md](docs/model_collapse.md) for the full description of the extension, its outputs, and its metrics, and [Paper_README.md](docs/Paper_README.md) for the original paper documentation.

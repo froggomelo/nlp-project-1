@@ -1,6 +1,6 @@
 # Circuit Discovery
 
-This extension finds the circuit each generation's model uses for the in-context learning task. A circuit is the small set of connections between model components that reproduces a behaviour on its own. Tracking it across generations shows whether model collapse changes the mechanism, not only the accuracy. Discovery uses auto-circuit (Miller et al., 2024), the library recommended by the project paper. It is off by default and enabled with `--circuit-discovery`.
+This extension finds the circuit each generation's model uses for the in-context learning task. A circuit is the small set of connections between model components that reproduces a behaviour on its own. Tracking it across generations shows whether model collapse changes the mechanism, not only the accuracy. Discovery uses auto-circuit (Miller et al., 2024), the library recommended by the project paper. Two methods run on every target. Edge attribution patching ranks every edge in one gradient pass. Automatic Circuit DisCovery (ACDC) (Conmy et al., 2023), the iterative pruning algorithm of the [Automatic-Circuit-Discovery](https://github.com/ArthurConmy/Automatic-Circuit-Discovery) repository, returns one circuit per threshold. Discovery is off by default and enabled with `--circuit-discovery`.
 
 ## Design Decisions
 
@@ -10,6 +10,8 @@ This extension finds the circuit each generation's model uses for the in-context
 | Prompts | the same real sequences in every generation | circuit changes then reflect the model alone, not drift in the data |
 | Value circuits | two per generation, one per corruption | each corruption exposes a different part of the induction circuit |
 | Extended model | value circuits plus a next-symbol circuit | the symbol head is where the extended model is expected to collapse |
+| Methods | edge attribution patching and ACDC on the same graph and prompts | attribution is fast and ranks every edge, and ACDC is the reference algorithm its approximation is judged against |
+| ACDC implementation | the algorithm run on auto-circuit's patchable model, not the original package | the original package pins PyTorch below 2.0 and TransformerLens 1.6.1, which cannot share an environment with the auto-circuit stack |
 | Toggle | `--circuit-discovery` flag, `CIRCUIT_DISCOVERY` in the run script | runs without the flag need no PyTorch and train exactly as before |
 
 ## Model Conversion
@@ -44,6 +46,14 @@ The graph is factorised. Every attention head output connects to the query, key,
 
 Faithfulness keeps the top k edges clean and ablates the rest on the held-out half, for k between 0 and 257. Recovery is the share of the full model's logit difference the circuit restores, measured from the fully ablated model. `n_edges_to_recover` is the smallest tested k with recovery of at least 80%. auto-circuit picks the tested values. In the validation run below they are 0 to 10, every 10 up to 100, 200, and 257. The count is coarse above 10 as a result.
 
+## ACDC
+
+ACDC starts from the full graph and removes edges one at a time. Edges are visited in reverse topological order. Destinations run from the output back to the input, and each destination's sources run from later layers and higher head indices to earlier ones, as in the reference implementation. Each edge is ablated by patching in its activation on the corrupt prompt. The edge is removed for good if the Kullback-Leibler (KL) divergence of the output from the full model's output grows by less than the threshold τ. Otherwise the ablation is undone and the edge stays in the circuit. The KL divergence covers the whole output distribution, not only the two answers of the logit difference.
+
+ACDC runs on the discovery half of the prompts in a single batch, as in the reference implementation. The circuit's faithfulness is measured on the held-out half with the same recovery measure as attribution. Each run covers a sweep of τ from 0.0003 to 0.1 and reports the circuit at `--circuit_acdc_threshold`. The default τ = 0.001 is the largest swept value at which both value circuits of the trained base model recover at least 80%. A fixed τ keeps circuits comparable across generations.
+
+auto-circuit ships its own port of ACDC. That port visits the edges within a layer in the iteration order of an unordered set, which can change between runs. Given the same edge order, both versions keep identical edge sets at τ = 0.001 and τ = 0.01 on the trained base model. The fixed order here makes every circuit reproducible.
+
 ## Validation on a Trained Model
 
 The pipeline was tested on the fully trained base model in `results/20260917152241_omniglot50_rl5` (1,000,000 training sequences) with 512 prompts. The full model's logit difference is 9.18. Both corruptions reverse it to about −9.1.
@@ -56,6 +66,17 @@ The pipeline was tested on the fully trained base model in `results/202609171522
 The exemplar swap finds a compact induction circuit. Its strongest edges run from the input embedding into head A0.2's value input, from A0.2 into the key inputs of heads A1.3 and A1.1, and from the layer 1 heads to the output. Attention patterns confirm these roles. A0.2 places 0.93 of each label position's attention on the preceding exemplar, the highest previous-token score in layer 0. A1.3 places 0.90 of the query's attention on the matching label, the highest induction score in layer 1.
 
 The label swap circuit is less sparse and runs through value inputs. Its strongest internal edge, A0.6 into the value input of A1.3, carries label content to the same induction head. Mean ablation with the label swap was also tried. It recovers only 24% at 50 edges and was dropped.
+
+ACDC was validated on the base model in `results/<timestamp>_base`, retrained by the run script with the same settings and seed. Its logit differences match the run above.
+
+| τ | 0.0003 | 0.001 | 0.003 | 0.01 | 0.03 | 0.1 |
+|---|---|---|---|---|---|---|
+| `value_exemplar_swap` edges | 37 | 31 | 23 | 20 | 17 | 13 |
+| `value_exemplar_swap` recovery | 92% | 89% | 83% | 79% | 73% | 68% |
+| `value_label_swap` edges | 80 | 67 | 56 | 41 | 27 | 22 |
+| `value_label_swap` recovery | 90% | 86% | 79% | 73% | 65% | 58% |
+
+ACDC agrees with attribution on the induction route. At τ = 0.001 the exemplar swap circuit holds 31 edges and recovers 89%, close to the 88% attribution reaches with its top 30 edges. Its largest KL increases come from the input embedding into A0.2's value input, from A1.3 to the output, and from A0.2 into A1.3's key input. This is the previous-token head feeding the induction head. The label swap circuit again runs through value inputs, led by A0.6 and its edge into A1.3's value input. ACDC needs 67 edges for 86% recovery where attribution needs 200 for 80%.
 
 ## Running
 
@@ -79,7 +100,7 @@ python -m src.circuits --checkpoint results/<run>/checkpoints/<iter>.eqx \
   --run_config results/<run>/config.json --out_folder results/<run>/circuit
 ```
 
-Each circuit takes under a minute on a laptop CPU. A run with `--circuit-discovery` but without the packages stops before training with an install hint. Training is unaffected by the flag. A two-generation test run produced identical training losses and accuracies with and without it.
+Both methods together take about 40 seconds per model on a laptop CPU. A run with `--circuit-discovery` but without the packages stops before training with an install hint. Training is unaffected by the flag. A two-generation test run produced identical training losses and accuracies with and without it.
 
 | Flag | Default | Meaning |
 |---|---|---|
@@ -87,6 +108,7 @@ Each circuit takes under a minute on a laptop CPU. A run with `--circuit-discove
 | `--circuit_n_prompts` | `512` | number of fixed real sequences, split evenly between scoring and faithfulness |
 | `--circuit_bs` | `64` | batch size for discovery |
 | `--circuit_seed` | `7` | seed for the fixed sequences and the next-symbol replacement classes |
+| `--circuit_acdc_threshold` | `0.001` | ACDC threshold τ on the KL divergence for the reported circuit |
 
 ## Outputs
 
@@ -100,6 +122,9 @@ Each generation writes the raw circuit plus three visual views per target to `ge
 | `<target>_component.{png,pdf}` | compact ACDC-style component graph; arrow style shows the destination Q/K/V input |
 | `<target>_sankey.{png,pdf}` | left-to-right flow graph; ribbon width is the absolute edge score |
 | `<target>_prune_scores.pt` | raw auto-circuit edge scores, loadable with `torch.load` |
+| `<target>_acdc_edges.json` | every edge with `in_circuit` for the ACDC circuit at the reported τ, and as `score` the KL increase measured when ACDC tried to remove it |
+| `<target>_acdc_faithfulness.json` | the reported circuit's summary and the τ sweep |
+| `<target>_acdc_component.{png,pdf}`, `<target>_acdc_sankey.{png,pdf}` | the ACDC circuit in both static views, with width set by the KL increase |
 
 Both static views contain exactly the same top edges. Positive attribution is blue, negative attribution is red, and line/ribbon width is proportional to the absolute score. The recovering circuit can be larger than the 40-edge readability cap; in that case the subtitle states, for example, “top 40 shown | first tested >= 80% recovery: 200 edges.”
 
@@ -137,6 +162,10 @@ Always interpret the picture together with `<target>_faithfulness.json`. `logit_
 | `n_edges` | number of edges in the graph |
 | `conversion_max_diff` | largest logit difference between the JAX model and its conversion |
 | `n_prompts` | number of prompt pairs kept after filtering |
+| `acdc_n_edges`, `acdc_recovery` | size and held-out recovery of the ACDC circuit at the reported τ |
+| `acdc_kl_divergence` | KL divergence of the ACDC circuit's output from the full model's on the discovery half |
+| `acdc_logit_diff_circuit` | logit difference of the ACDC circuit, next to `acdc_logit_diff_full` and `acdc_logit_diff_ablated` |
+| `acdc_threshold` | the reported τ |
 
 ## Implementation
 
@@ -144,9 +173,11 @@ Always interpret the picture together with `<target>_faithfulness.json`. `logit_
 
 ## Limitations
 
-Recovery is unstable when the full and ablated logit differences are close. Early or collapsed models can show this, and their `n_edges_to_recover` should be read alongside `logit_diff_full`. Edges ablate every position at once, which hides which position each connection acts on. The conversion supports MLP blocks, other position embeddings, and models without normalisation, but only the attention-only rotary configuration of the run script has been tested. The circuit describes the unclamped weights when optogenetic clamps are active. The next-symbol circuit averages over the context symbols, which treats them as equally correct.
+ACDC's circuit depends on the order in which edges are visited, and τ trades circuit size against faithfulness. The sweep in each faithfulness file shows that trade-off. ACDC is greedy and can keep an edge whose effect only appears together with an edge removed earlier. Recovery is unstable when the full and ablated logit differences are close. Early or collapsed models can show this, and their `n_edges_to_recover` should be read alongside `logit_diff_full`. Edges ablate every position at once, which hides which position each connection acts on. The conversion supports MLP blocks, other position embeddings, and models without normalisation, but only the attention-only rotary configuration of the run script has been tested. The circuit describes the unclamped weights when optogenetic clamps are active. The next-symbol circuit averages over the context symbols, which treats them as equally correct.
 
 ## References
+
+Conmy, A., Mavor-Parker, A. N., Lynch, A., Heimersheim, S., and Garriga-Alonso, A. Towards automated circuit discovery for mechanistic interpretability. NeurIPS, 2023. arXiv:2304.14997.
 
 Miller, J., Chughtai, B., and Saunders, W. Transformer circuit faithfulness metrics are not robust. COLM, 2024. arXiv:2407.08734.
 
