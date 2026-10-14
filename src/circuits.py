@@ -254,8 +254,9 @@ def acdc(model, loader, threshold):
   '''ACDC (Conmy et al., 2023) on auto-circuit's patchable model.
 
   Follows the reference implementation: starting from the full model, edges are
-  visited in reverse topological order (output first, and for each destination
-  the latest sources first). Each edge is ablated by patching in its corrupt
+  visited in reverse topological order. Destinations run from the output back,
+  and each destination's sources from later layers and higher head indices to
+  earlier ones. Each edge is ablated by patching in its corrupt
   activation. The ablation is kept, removing the edge, if it raises the KL
   divergence of the output from the full model's by less than `threshold`;
   otherwise the edge is restored and stays in the circuit. Uses the first
@@ -268,7 +269,8 @@ def acdc(model, loader, threshold):
   patch_outs = src_ablations(model, batch.corrupt, AblationType.RESAMPLE)
   with t.inference_mode():
     clean_logprobs = t.log_softmax(model(batch.clean)[model.out_slice], dim=-1)
-  edges = sorted(model.edges, key=lambda e: (-e.dest.layer, e.dest.name, -e.src.layer, e.src.name))
+  edges = sorted(model.edges, key=lambda e: (-e.dest.layer, -(e.dest.head_idx or 0), e.dest.name,
+                                             -e.src.layer, -(e.src.head_idx or 0)))
   effects, kept, kl = {}, [], 0.0
   set_all_masks(model, val=0.0)
   with patch_mode(model, patch_outs):
