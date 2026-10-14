@@ -90,14 +90,43 @@ Each circuit takes under a minute on a laptop CPU. A run with `--circuit-discove
 
 ## Outputs
 
-Each generation writes four files per target to `gen_<g>/circuit/`. Single runs without a pool write them to `circuit/` in the run folder.
+Each generation writes the raw circuit plus three visual views per target to `gen_<g>/circuit/`. Single runs without a pool write them to `circuit/` in the run folder.
 
 | File | Contents |
 |---|---|
 | `<target>_edges.json` | every edge with its source, destination, and score, sorted by absolute score |
 | `<target>_faithfulness.json` | the summary scalars and the recovery curve over edge counts |
-| `<target>_graph.html` | interactive diagram of the recovering circuit, capped at 40 edges |
+| `<target>_graph.html` | auto-circuit's interactive graph, capped at 40 edges |
+| `<target>_component.{png,pdf}` | compact ACDC-style component graph; arrow style shows the destination Q/K/V input |
+| `<target>_sankey.{png,pdf}` | left-to-right flow graph; ribbon width is the absolute edge score |
 | `<target>_prune_scores.pt` | raw auto-circuit edge scores, loadable with `torch.load` |
+
+Both static views contain exactly the same top edges. Positive attribution is blue, negative attribution is red, and line/ribbon width is proportional to the absolute score. The recovering circuit can be larger than the 40-edge readability cap; in that case the subtitle states, for example, “top 40 shown | first tested >= 80% recovery: 200 edges.”
+
+To add both views to an existing run without repeating circuit discovery, run:
+
+```bash
+python -m plotting.circuit_plots results/<run>/circuit
+```
+
+Pass a single `*_edges.json` file instead of a directory to render only one circuit, or use `--max-edges N` to change the readability cap.
+
+## Reading the Graphs
+
+`A0.2` means attention head 2 in layer 0; `A1.3` means attention head 3 in layer 1. `Embed` is the residual stream entering the transformer, and `Output` is the final residual stream read by the unembedding. In the component view, dotted, dashed, and solid arrows enter a head's query (Q), key (K), and value (V) inputs respectively. An arrow ending at `Output` is also solid.
+
+The two pictures encode edge strength in different ways. In the component view, thicker arrows have larger absolute attribution scores. In the Sankey view, the same quantity controls ribbon width. Blue means the clean activation on that edge locally supports the correct-minus-wrong logit difference; red means it locally opposes it. A negative score does not by itself mean that a head is “bad” or inhibitory: scores are local mask-gradient attributions and interacting edges can change one another's effects.
+
+Read complete routes rather than isolated thick edges. For example, `Embed -> A0.2.V -> A1.3.K -> Output` says that input content enters the value channel of `A0.2`; that head's output helps form the keys used by `A1.3`; and `A1.3` directly affects the prediction. Several individually strong edges may recover nothing until the final edge that completes their path is retained.
+
+The two value targets answer different mechanistic questions:
+
+| Target | What strong routes usually identify |
+|---|---|
+| `value_exemplar_swap` | where the query finds the matching symbol, especially previous-token-to-induction Q/K routes |
+| `value_label_swap` | what label/value content is copied, especially routes entering later heads through V |
+
+Always interpret the picture together with `<target>_faithfulness.json`. `logit_diff_full` should be clearly separated from `logit_diff_ablated`; otherwise recovery is ill-conditioned. `n_edges_to_recover` is the smallest tested top-k circuit reaching 80% recovery on held-out prompts. If it exceeds the 40-edge display cap, the image is only a readable excerpt of the faithful circuit, not the entire circuit.
 
 `circuits.h5` in the run folder holds one row per generation for each `<target>/<metric>`.
 

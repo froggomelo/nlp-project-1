@@ -299,6 +299,11 @@ def run_circuit_discovery(model, opts, prompts, out_folder, data, exemplar_inds,
     fig = draw_seq_graph(model_tl, scores, score_threshold=threshold, layer_spacing=True,
                          display_ipython=False)
     fig.write_html(prefix + '_graph.html')
+    # Two publication-friendly static views of the same selected edge set.
+    # Import lazily so runs without circuit discovery do not load matplotlib.
+    from plotting.circuit_plots import render_circuit_views
+    render_circuit_views(edges, scalars, prefix, title=target.replace('_', ' ').title(),
+                         max_edges=MAX_DRAWN_EDGES)
 
     print('circuit', target, 'gen', gen, {k: float('{:.4g}'.format(v)) for k, v in scalars.items()})
     print('circuit', target, 'top edges:', ', '.join(
