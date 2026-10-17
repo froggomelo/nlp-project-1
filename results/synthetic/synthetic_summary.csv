@@ -1,0 +1,7 @@
+,oracle_gap,none_gap,mean-centre_gap,pairs_gap,oracle_floor,none_floor,mean-centre_floor,pairs_floor
+,mean,mean,mean,mean,mean,mean,mean,mean
+delta,,,,,,,,
+0.0,0.006,0.0,0.0,-0.0,0.499,1.0,0.5,0.5
+0.1,0.018,0.0,0.0,0.016,0.497,1.0,0.5,0.501
+0.2,0.047,0.0,0.0,0.048,0.499,1.0,0.5,0.499
+0.4,0.099,0.0,0.0,0.097,0.5,1.0,0.5,0.502

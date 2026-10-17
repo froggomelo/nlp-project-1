@@ -1,0 +1,3 @@
+*.pdf binary
+*.png binary
+*.ipynb text eol=lf

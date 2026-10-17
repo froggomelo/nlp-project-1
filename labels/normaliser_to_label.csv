@@ -1,0 +1,240 @@
+﻿split,rule,word,proposed,context,correct,gold,note,hist_count,orig_freq,prop_freq
+val,asp,endikutandayo,endikuthandayo,... ndiya kubamkelisa ndibalinganise nawe. 15. Andingekwenzena endikutandayo ngokukokwam. Iliso...,,,,2,0,5
+test,asp,okucasa,okuchasa,...asesinqunyulwa umqala kanye. Wateta namanye amazwi amaninzi okucasa ukucandwa komhlaba. Kwabonakala kulomazwi nkuba...,,,,3,0,2
+val,prefix_common,no kufa,nokufa,"...azwe inkulu ipakati kobulungisa ne nkohlakalo, pakati kobom no kufa kobu Kristu nobu hedeni, ko Tixo...",,,,2,124,77
+test,asp,bopelela,bophelela,,,,,1,0,51
+val,asp,yayiteta,yayithetha,...[Kunjanina kuke kwabuya kwacofwa kweli yayiteta ngalo “ Imvo” bonkabi? — ED.] IMALI ENGAMKELEKIYO. KWIMIQOL...,,,,5,0,21
+test,asp,ngantlanu,,"...bubele babo abenele xa bangaposanga ozisheleni, nozisheleni ngantlanu. Ndite fanukuba baqele ukuhanjelwa ngosize kucela, nosize k...",,,,8,0,0
+val,asp,yokuxonywa,yokuxhonywa,,,,,1,0,2
+test,asp,kucaswe,,,,,,4,0,0
+val,asp,wokukanya,wokukhanya,...akuqalisa ngaye. Wati tina siyajabula ngoba sipansi kombuso wokukanya wama Ngesi. Elama Tonga lipansi kombuso wama Putukezi (Port...,,,,12,0,27
+test,asp,ikupela,ikhuphela,"...mo kakulu. Wendela e Sheshegu kunyana ka Mzimba, u Ntibane, ikupela kwake kuyise; wendela kumzi okwamkulu nangenkomo nebhokwe. ...",,,,10,0,23
+val,asp,ekohlela,ekhohlela,"...mba intokazi, yasuka yequba ipepile emehlweni omtakati, ute ekohlela elila, etimla yaye ikupa isabokwe ebisifihle pantsi kwebaty...",,,,3,0,7
+test,prefix_common,i banki,ibanki,"... namagqweta, ite i Jaji akanatyala u B. Miles, kuba ngeyati i Banki kwala. mhla kweziswa ipepa elingalungileyo yayi. panda lont...",,,,1,0,2
+val,asp,esingati,esingathi,...kelela e Dordrecht. Nakuba yabaninzi impi eyajika endleleni esingati...,,,,52,0,10
+test,asp,nabarwebi,nabarhwebi,"...de ‘ wayesiti bayakuwuhambisa umteto kunye nenkosi. ABALIMI NABARWEBI. IMARIKE. E QONCE, (Dec. 20...",,,,9,0,6
+val,asp,wasekaya,wasekhaya,,,,,1,0,124
+test,asp,anokuti,anokuthi,...alata ukuba kumadoda apambili ihlalele ukungaziwa eyona nto anokuti atenjwe kuyo xa ati aya kuyimela. ko...,,,,24,0,30
+val,asp,amatatu,amathathu,"...zi equtwazana; inkonazana ekwa gwangqazana, emalunga kumasu amatatu (5) netokazana la akwelwayo; (6) litole elimnyama eliyinkun...",,,,488,0,858
+test,asp,kubako,kubakho,...a kuzo-ke bizani Iblankete ezinomfanekiso we Ngonyama. Ziya kubako kuzo zonke ivenkile za Pesheya kwe Nciba nase zidolopini zo...,,,,382,0,465
+val,asp,akasatandi,,"...tsundu, wotinina ezulwini? Ezulwini sohlala ndawonye nokuba akasatandi sotandana; kufuneka ekunjuzwa ukuba siyemka emhlabeni. Zama...",,,,3,0,0
+test,asp,tuba,thuba,...ubuyile pesheya. Sivuyiswa kukukubona sibe kananjalo sineli tuba lokubhekisa kuwe lamazwi okukwamkelela ekaya emva kwexesha ...,,,,142,1,120
+val,asp,uvakale,,"...ta uluvo wati, “ sewenze uluvo olute nqo na ngalomcimbi ? ” Uvakale esiti unkomo, “ kungaba yinto enokwenzeka na ukuti amadoda ...",,,,5,0,0
+test,asp,ngelote,ngelothe,,,,,1,0,1
+val,asp,gardening,,"...dawo epolileyo. Kangela kanjaqo Incwadi yo Mr. TP. Gowie, ” Gardening in South Africa,” Ixabiso Is., itunyelwe ze ngeposi. “ OATL...",,,,7,0,0
+test,asp,atule,athule,"...Ipolisa elitsha, elingay aziyo lento, liwanyanzele kuba atule iqiya ematyaleni ase Kapa, akakatsho ama Slamsi ukuke apule...",,,,2,0,1
+val,asp,wayibuta,wayibutha,...wayibuta nento eninzi yohlalutye. Lendoda yenze isipango ngezidubuli...,,,,1,0,1
+test,asp,ngemitwalo,ngemithwalo,"...eziqingata. Into efunwa ngu Mr. RHODES kukubalayisha ngemitwalo zebangawafumani amalungelo. Lento siyicasile, sitemba ukuba...",,,,1,0,13
+val,asp,sokupuma,sokuphuma,,,,,4,0,25
+test,asp,ndit,ndith,,,,,2,0,1
+val,asp,esipelweni,esiphelweni,...uya no Mr. HACKER kwanamawetu amele esisikolo ngoku sondela esipelweni kwamalinga okulungiselela. Ukubuliswa ko Mantyi wase Bhofol...,,,,6,0,143
+test,asp,mazimiliselwe,,"... Tulip, Iris, Ranunculus, Lachenalia, Babiana, njalo-njalo. MAZIMILISELWE.. E (CACADU) LADY FRERE, BANOVUYOKAZI olukulu ukushumayela ...",,,,8,0,0
+val,asp,ibiteta,ibithetha,...ka Yuzi. EBUTSHENI benyanga efileyo imantyi yase Somalaseti ibiteta amatyala e Pearston. Emva koku gweba...,,,,14,0,4
+test,asp,wamtiya,wamthiya,,,,,1,0,31
+val,asp,ngokutiwa,ngokuthiwa,...umhla wokuvavanya izimangalo zamagama abefakiwe aza acinywa ngokutiwa akafanele. Xa kupicotwa ngoluhlobo bungaba “ ubuqhinga ” bu...,,,,29,0,15
+test,prefix_common,kwi culo,kwiculo,"...ndiya kuti qiwu kwi Culo, viii. 5 : “ Umsilelise (umntu) kancinane ubu Tixo, wamti j...",,,,1,7,2
+val,asp,nawupina,nawuphina,"...kuba ndigqibe, ndazisile emhlotsheni ukuba andisayi kuxhasa nawupina u Rulumeni o‘Laulo lwaba Ntsundu lungasekwanga ebulungiseni...",,,,164,0,80
+test,asp,okokel,okhokhel,,,,,2,0,1
+val,asp,eseziko,esezikho,"... kubasebenzi bozilo, abangemalungu mhlaimbi entlanganiswana eseziko ezilwa uselo olunamandla, ukuba bancede kule nkatazo. Asita...",,,,8,0,1
+test,asp,ngelokuti,ngelokuthi,...goku umbuso wase Mlungwini. Elixa wonke umzi ontsundu ukala ngelokuti mabuwezwe utywala bomlungu kubonakele kwipepa lalapa lama N...,,,,22,0,1
+val,asp,mipunga,miphunga,...zo MQALA ne MIPUNGA. 1/6 ngeThotile. 2/- LITUNYELWE NGE POSI. Ngamanani Nangany...,,,,91,0,1
+test,asp,nditete,ndithethe,"...le zekufane kutiwe funukuba uti. Yintonina lonto? Andizange nditete njengoku 3. Inteto yam yile — Ndite ngokwam ukubona, azibon...",,,,55,0,56
+val,prefix_common,ne zonka,nezonka,"...NABAKUDE IMIXESHO YENYAMA NE ZONKA, NINOKUYIFUMANA KO BEECHAM’S PILLS IZAZISO ZASE QUEENSTOWN....",,,,3,8,14
+test,asp,ungandibutisiyo,ungandibuthisiyo,"...kupanga indlu yalo. 30. Lowo ungengakum ucasene nam, nalowo ungandibutisiyo uyacitacita. 31. Engoko nditi kuni sonke isono nokugxeka u ...",,,,1,0,2
+val,asp,uyiteta,uyithetha,"...ufuneke ugciniwe. Uti agcina imiteto yelizwe, ngati lendawo uyiteta kuhle, watinina u Yesu baku mlinga beti uzukuti makukatalel...",,,,4,0,2
+test,asp,basitata,basithatha,,,,,1,0,3
+val,asp,woke,,...ba isininzi senu ndobuye ndinibone. Ndiyatemba ukuba u Tixo woke asolulele imihla yokumgebenzela nokuzama ilungelo labetu. A...,,,,25,0,0
+test,asp,ukupinda,ukuphinda,"...aya kupuma ngomnyango ongemva umlungu, wanyel’ umchiza. Ute ukupinda ukumbona Umtshaka wayengase posini apo abanjwe kona ngobuse...",,,,11,0,282
+val,asp,ukutatyatwa,ukuthatyathwa,...Elisiko lama Ngesi lekumnika amabaso ngomtshato beli-fanele ukutatyatwa siti bantsundu ukuba silumnkile. Komnye umhlati singenisa a...,,,,11,0,18
+test,asp,wanditanda,wandithanda,,,,,1,0,1
+val,asp,epumayo,ephumayo,,,,,1,0,100
+test,asp,sacitwa,,...kubeko umpati wabo wokubakangela. Singati esi sihlalo ko sacitwa ingasisi nyopolo. Yaba ko iyapela ingxoxo ngalendawo. ABAFU...,,,,3,0,0
+val,asp,kuqunyiselwa,kuqhunyiselwa,"...si e Rini, kwifama ka Harper, ekufupi ne Manley Flats, kute kuqunyiselwa Jnkumbi ngokutshiswa kwedobo kanti umntwana ka Mr. Horne, e...",,,,1,0,2
+test,asp,amaqina,amaqhina,"...shata. Ingubo zamanene, Ihempe, ihempe Zangapantsi ikawusi, amaqina njalo, njalo. Isuti zamanene eziluhlaza inani ziqala kwi 21...",,,,137,0,129
+val,asp,engatetwayo,engathethwayo,...kumela lonto kangangoko wayemi apa pambi konyulo. Nantonina engatetwayo echase le lutuli kodwa oluposwa emehlweni etu. (Ngati kum l...,,,,5,0,1
+test,asp,lupuma,luphuma,"...olangazelelo lokuba bapile kakuhle bonwabe oluluvo lushushu lupuma kubantu abawuqondileyo into oyiyo umsebenzi abawuzamileyo, ...",,,,7,0,15
+val,asp,ukuzikusela,ukuzikhusela,...o uzuko Lwabadlali-bola abantsundu. Bati abadliwa abo kambe ukuzikusela bonabebebize Iqela Lesibini lalo club iyi Port Elizabeth in...,,,,6,0,34
+test,asp,kumpakati,kumphakathi,,,,,1,0,164
+val,asp,zosixenxe,zosixhenxe,"...udala bake xa bukwiminyaka emashumi mane anesine, anenyanga zosixenxe, ekuseni, mayelana nexesha lesitatu. Ngomnqweno omkulu waba...",,,,7,0,23
+test,asp,teto,tetho,...I NEVOTI Kubuye kwangenwa kulengxoxo kwisiqendu se 14 salom teto u Mr. UPINGTON wati makungabiko mntu umnyama uya — kuba ngu...,,,,13,0,18
+val,prefix_common,no qebeyi,noqebeyi,,,,,1,0,1
+test,asp,wanetuba,wanethuba,...ENZO ESINCOMEKAYO. KWEZIVEKI mbini zigqitileyo lombhali uke wanetuba elihle lokubona umsebenzi wabafundisi wesikolo sase Mgwali ...,,,,7,0,1
+val,asp,putha,phutha,,,,,1,0,2
+test,asp,umrumo,umrhumo,"... Isina layovulwa kwakona NGOLWESI-BINI, 3RD FEBRUARY, 1891. Umrumo nge Seshoni uziponti ezimbini ezineshumi (£2 10 0), ubhatal...",,,,83,0,120
+val,prefix_common,kwi zicelo,kwizicelo,...ngegama lokuba Butywala ba Maxhosa siya kubalelwa kwi zicelo ezinxilisayo ngamaxesha onke.” TIXO SIKELELA INKOSAZANA! Ub...,,,,4,47,27
+test,asp,ozakuti,ozakuthi,...sibhekisele ehambareni yotywala. Kwezinteto uvakalise icala ozakuti...,,,,2,0,2
+val,asp,abaketi,abakhethi,,,,,3,0,12
+test,asp,diqinisekileyo,,"...ika indlela eyamkeleka kakulu yokusebenzisa ukupela kweyeza diqinisekileyo LAMAPALO ASEMATUNJINI, Liyeza elilunge kwapela laye lingera...",,,,15,0,0
+val,asp,tete,thethe,"...tywe ingxoxo engalendoda kwagqitwa, kwakubon' ukuba kube ku tete o Messrs. Zwedala no Makasi. I ngxoxo ibe pezu ko Messrs. B...",,,,13,0,1
+test,asp,kwetu,kwethu,...ekela bucala ukwenza umsebenzi wobufundisi obuzeleyo pakati kwetu. Bazalwana ize nikumbule okokuba amehlo amaninzi apezu kwen...,,,,583,0,204
+val,asp,unokuxaswa,,"...vule “ IKAYA LABANTSUNDU ” e-Malay Camp, Rose Street. Umntu unokuxaswa ngazo zonke izinto. Abahambi banokuncediswa nange Pass. JAM...",,,,5,0,0
+test,asp,yehashi,,"...ENGO-JABAVU, ubeleke UNYANA. ISAZISO UBIWE ebuhlanti inkabi yehashi apa Emcambalaleni ngomhla 16th October ebusuku. Li rwanqa e...",,,,4,0,0
+val,asp,ikete,ikhethe,...libekekileyo nelilumkileyo lase Dikeni. Uwucase kuba usenza ikete pakati kwabantu belilizwe ngenxa yebala. Ukuze umntu abengu...,,,,14,0,5
+test,asp,ayinakupikwa,,...yokuba amawetu anobuhlobo obukulu nabelungu bevenkile ayinakupikwa bani; bengeze batanda kwakona ukubona abelungu betshutshisw...,,,,3,0,0
+val,asp,kwizikonkwane,kwizikhonkwane,,,,,1,0,8
+test,asp,ubelitemba,ubelithemba,"...longubo yake kuba ngokupinisela’ kwake ekuteteni ngemicimbi ubelitemba labantsundu kwabase Rini nabangapandle, UBUTATAKA balo Rulu...",,,,1,0,1
+val,asp,sebhulukwe,sebhulukhwe,"...i ? Wadakwesosituba wancedeka, kukusuke ize kupuma esinqeni sebhulukwe. Abantu abakolwayo banento abangayiqondi kamnandi le yokuba...",,,,1,0,2
+test,asp,bate,bathe,"... ancokole no Satana ukuze angabi namanwele. Baya ke okunene bate besabuzana imvelapi, esakwezela umlilo umninindlu, wamtsibe...",,,,352,0,202
+val,asp,etandaza,ethandaza,"...elokuti ukuba isixaso salo asiziswalobhanga ipepa, — kukade etandaza njalo, ngoku selengati uyasongela, ngokuba esiti oselenexes...",,,,10,0,10
+test,asp,izigqubutelo,izigqubuthelo,... Zokutshata nazo ziyenziwa Ingeji Nemisesane Yokutshata iko Izigqubutelo Zabatshakazi. Ndenzelwa ITYALI Skotilane ze Venkile yam. R....,,,,56,0,20
+val,asp,okutshelwe,okhutshelwe,...u ka Rev. J. Start no Rev. M. J. Letcher wase Barkly East — okutshelwe kwelama Mpondo ngoku. Lentombi ingu Mies Jane Evelena Start...,,,,2,0,4
+test,prefix_common,ka mfi,kamfi,"...iti zobumenemene akuko nento le eziyakunceda yona. Umntwana ka mfi yena makazihlalele, uyafa, angafane angene...",,,,12,2,8
+val,asp,utumela,uthumela,...i ukuze bafundiswe ubugqweta babe ngamamenemene. Ukuba yena utumela intsapo yake emfundweni umelwa zindleko ezinkulu abagxote k...,,,,9,0,157
+test,asp,abakululwe,abakhululwe,,,,,3,0,1
+val,asp,akuqukwa,,"... nguwupina umyalelo nomteto owenziwe ngezantsi apa. “ Umti” akuqukwa imiti yama planka yodwa, kutetwa imiti, iziciti namatyolo e...",,,,3,0,0
+test,asp,ichasiwe,,"...u abantsundu bafundiswe incaso (opposition), kuba bona into ichasiwe iba lutshaba mpela-mpela. Anditsho ukuti mazingavakaliswa i...",,,,6,0,0
+val,prefix_common,ne sibindi,nesibindi,"...6th, 1889 I-PILISI zika-Nozala u-SIEGEL. ZOKUQHINA KWE SISU NE SIBINDI, NJALO-NJALO., AZIFANI neminye imitshekisane, kuba zimnceda...",,,,8,5,9
+test,asp,epangweni,ephangweni,,,,,4,0,2
+val,asp,kurola,kurhola,"...ziwe, imali leyo isiwe e Mantyini; (c) indoda nganye imelwe kurola i £2 12s., eyonocanda kwane Taitile. Oko kukuti yoba ilufez...",,,,17,0,3
+test,asp,abaposa,abaphosa,,,,,1,0,1
+val,asp,ongapezulwana,ongaphezulwana,,,,,1,0,2
+test,asp,kumapakati,kumaphakathi,"...Mr. Gladstone oyena mpaKati utshatsheleyo Kumapakati aKe apata imicimbi ye Nirosazana ngesisizuKulwana, ze Kanja...",,,,14,0,1
+val,asp,mikosi,mikhosi,...kungenwa kuzo etyalikeni. U COLONEL ligama le wonga lompati mikosi ye Nkosazana. Aliko esi Xhoseni bengakwazi nokulibiza a ban...,,,,49,0,198
+test,asp,ibiqutywa,,... wavakala esiti u Kivit wakwa Nomadolo “Lento bendiyiva oku ibiqutywa ngaba bafo base Ncemera — ngoku ingenwe ngamakaya nje andiy...,,,,4,0,0
+val,asp,kweziveki,,...ndiso yoluhlobo. Sifutnana ukubo kwelama Hashiya Ijaji kona kweziveki zigqitileyo ibe ihleli pezu kwetyala labantu abatandatu aba...,,,,101,0,0
+test,asp,kungumnqweno,,... ukutetwa kwamatyala; ingumlomo nendlebe ka Rulumeni. Ukuba kungumnqweno wabantu i Palamente ingayilungiselela into yokuba kubhenelw...,,,,6,0,0
+val,asp,kutakata,,"...ivulele, wasuka opakati wayifaka umkonto, kwasekutiwa ibiye kutakata akwaba ndaba zaluto; lapa e Transvaal. — D. M. QONDANI: XAB...",,,,3,0,0
+test,asp,napaya,naphaya,"...ama; ibonakale kaloku selimana ibopa amaxonya, itabata paya napaya ko ompi no buti no tanta no sisi no...",,,,16,0,2
+val,asp,wompunga,womphunga,,,,,3,0,28
+test,asp,isitola,,"...e Peelton. Ukululekile. — F. Loiters, Tom Pike ngokugqoboza isitola sakwa Ngomti, Loites iminyaka 5, Pike 4. ’ SIVE SABONA U Re...",,,,8,0,0
+val,asp,kululeka,khululeka,,,,,1,0,10
+test,asp,ngabakonzi,ngabakhonzi,,,,,1,0,35
+val,asp,pambile,phambile,"...kazi, emanqina amhlope la asekunene omabini, elasemva ne la pambile. Elasemva ekohlo limhlope kuhle ezantsi. Linesilonda emagxe...",,,,4,0,11
+test,asp,ukokela,ukhokela,...la le Southern Cross linenteto enamandla nge sitembu. Uwetu ukokela ngenteto yokuba isiko lokuzeka isitembu “ liyabatoba libenz...,,,,3,0,5
+val,prefix_common,i titshala,ititshala,"...ards) zonke akasokuqale anyanzelwe, kodwa kulindeieke ukuba i Titshala ziyakuti ngako kpuke ekunokwenzeka kwakamsinya. ne z?nse am...",,,,4,3,4
+test,asp,asitetelele,asithethelele,"...gena emngxunyeni wamakwele nomona nolunya, nokoyika izanga, asitetelele. Kuti xa kutetwa ngokuba abantu abamnyama base Transkei ban...",,,,1,0,1
+val,asp,yamagqweta,,"...lo lesheleni, selinetole elizisheleni ezimbini, kwanendleko yamagqweta ngendlu nganye. Impahla iyakutinjwa itengiswe. Yonke ke lon...",,,,34,0,0
+test,asp,beyitwele,beyithwele,,,,,1,0,1
+val,asp,ukubuncipisa,ukubunciphisa,,,,,1,0,1
+test,asp,naseziqwini,,"...o amadoda entlanganisweni, kodwa lonto ingapumeli ngapandle naseziqwini zabo bebechasene ngezimvo entlanganisweni. XAKALASHE. IZINT...",,,,3,0,0
+val,asp,kukululwe,kukhululwe,"...lemka nayo. Kute apo kukululwe kona umkokeli wayakukha amanzi lona lemka nenkabi, yasala l...",,,,4,0,13
+test,asp,semngcipekweni,semngciphekweni,...ngelwa kolu Manyano ngumzi; tina bakude lukangeleka ngokuba semngcipekweni kuba e Bhai lusendaweni olungena kuquba kakuhle kuba lupasa...,,,,5,0,35
+val,prefix_common,kwa nalo,kwanalo,"...kuba nenjenje. Oka Pamla namenjenje. noka Pelem, noka Seya, kwa nalo k a Mhala. Zizidwangube ke lonto ezi sekuvunywa ngazo lusap...",,,,1,460,4
+test,asp,wapuka,waphuka,...waza omnye wapuka ingalo esibla ngompongolo kumngxuma oyi Paarl Central kwalo...,,,,41,0,1
+val,prefix_common,i ofisi,iofisi,"...Ikaya e LADY FRERE. (LAW-AGENT), MATYALA uwateta nakuyipina i Ofisi ya Pesheya kwe Nciba. Umteteleli Ematyaleni, KUTSO LO. A SA...",,,,118,505,32
+test,asp,wokupumla,wokuphumla,"...mnandi, abanganyolukele lunxilo ngati Lebengafumana umhlaba wokupumla. Amapolisa agcine umda weli nelipesheya kwe Nciba angene kw...",,,,4,0,1
+val,asp,kutanjiswe,kuthanjiswe,,,,,1,0,2
+test,asp,sisikundla,sisikhundla,,,,,1,0,9
+val,asp,urulumente,urhulumente,"... kukalwa ngati nasisizukulwana esizayo. OMNYE UMTETO OMTSHA URULUMENTE unomnye umteto awungenise e Bandu, wokupatwa kweziqingata n...",,,,6,0,318
+test,asp,ayikange,ayikhange,,,,,2,0,26
+val,asp,abanentliziyo,,"...ela kwalo mdlalo kuya kuba yinzuzokumzi wonke. Banga abantu abanentliziyo, nokuqonda, bangawutundeza kuhle, bazizame zonke mdlela ezi...",,,,5,0,0
+test,asp,ayitanda,ayithanda,,,,,2,0,1
+val,asp,singumzi,,"...to eyenziwayo, ngati nokulungiselelwa kwangoku, kuba kaloku singumzi ohlangana kade, andazi nokuba umzi ungacinga ukuti akukabik...",,,,12,0,0
+test,asp,zamatambo,zamathambo,"...Zamatambo, Isinqe, ingqaqambo Zentloko. Lingqinwe ngamawaka. Umenzi w...",,,,303,0,101
+val,prefix_common,no hadi,nohadi,...Bokwe. Babe ke bepete no hadi oludlalwa ngu Mr. J. K. Bokwe. Kute ezindleleni apo inqwelo...,,,,4,0,8
+test,asp,yokuyitenga,yokuyithenga,,,,,1,0,1
+val,asp,zokupelelwa,zokuphelelwa,,,,,1,0,9
+test,asp,yiti,yithi,...i fumana Zizezona Zitshipu Etengisweni. Xa uhambele e Qonce yiti gxada kuleyo ndlu inkulu ye Ngubo yo Pambi kokuba utenge kw...,,,,89,0,160
+val,asp,nasebukweni,nasebukhweni,,,,,1,0,1
+test,asp,xaxe,xhaxhe,,,,,1,5,140
+val,asp,ugqira,ugqirha,"...t Frere, Mount Ayliff, Matatiele, Mount Currie no Mzimkulu. Ugqira Omkulu Wempahla we Koloni, Mr. Duncan Hutcheon, e Kapa. CHA...",,,,70,0,369
+test,asp,cok,,...| | 9d. ibotile. | +=====+==============================+ | COK | Elika Iyeza Lepalo. | +-----+----------------------------...,,,,3,0,0
+val,prefix_common,no mongo,nomongo,,,,,1,4,4
+test,asp,ayingebi,,...ase Transkei. India enkulu yemidlalo yaba mhlope base Gcuwa ayingebi naluncedo lwanto kwabakowetu; kanti ke icebo lokugcina imal...,,,,22,0,0
+val,asp,lapa,lapha,"...AST, — Ijaji yomjikelo weli pezuki (Mr. Justice Hopley) ibe lapa ngo Mvufo, 9 October, ingu Advocate Forster Umtsbutshisi-ma...",,,,83,3,14
+test,prefix_common,no kunjalo,nokunjalo,...wo kakuba impahla engenaso esisifo ingaman’ukungeniswa nayo no kunjalo xa sisfko isifo kufupi nesithili eso sikuso...,,,,1,771,3
+val,asp,opindwe,ophindwe,,,,,1,0,24
+test,asp,sasingeko,sasingekho,,,,,3,0,2
+val,prefix_common,ne ngcinga,nengcinga,,,,,1,11,8
+test,asp,ijd,,"... OSTRELIYA, ne NYUZILANI, ne KOLONI ZASE KAPA. Ibhotile Is. IJd. ne 2s. 6d. J . R. IRELAND, Umaki Wezindlu Nomtati WE Kontr...",,,,30,0,0
+val,asp,ekaya,ekhaya,"...apo ’ Nelenu ikaya lilapo; Zaman’ ukuhamba londlela, Isinga ekaya pezulu. 4. Zixolise nawe nozala, Nakuba usel’ elubala, X’ u...",,,,346,0,339
+test,asp,aketwa,akhethwa,"... ngamabiui aya kute.ta knzo zonke izixekwanr zase Nxukwebe, aketwa ke. Wati nakuqale kutete awase Nxukwebe, awati i ofisi mayi...",,,,2,0,2
+val,prefix_common,ne mpilo,nempilo,,,,,4,16,55
+test,asp,ikuliswe,ikhuliswe,,,,,1,0,1
+val,asp,elingapezulu,elingaphezulu,...e ngokuti nizipakamise kunye nabantwana benu ukuba kwibanga elingapezulu kokuba nipatwe ngomteto wabantsundu. HARRY ESCOMBE. Eka Sir...,,,,30,0,61
+test,asp,engenakupikwa,engenakuphikwa,"...ye — oku sikutabata kwipepa lase Dayimani kobonisa: — Yinto engenakupikwa nangubani, okokuba wonke umbulali nomenzi waso sonke isono ...",,,,5,0,1
+val,asp,njengesiqelo,njengesiqhelo,"...azibi kwazo. Imbangi baqale bancaze uti ukuba akupendulanga njengesiqelo ube ugqibile ukuzonela, suke tswa ngezituko, ube ngabbekisa...",,,,6,0,66
+test,asp,umkangeli,umkhangeli,"...Beke ndingayiqondi lento kuba Umkangeli ubekolisa ukufika ngexesha lempi imkileyo, namhla ufike iko...",,,,94,0,89
+val,asp,ayitintele,,...butyakala obukulu ku Mampondo ukuba ayitintele ihambara nokukanya. Angati ekwenzile oko alingehlali xesha ...,,,,3,0,0
+test,prefix_common,nge zizwe,ngezizwe,,,,,1,18,23
+val,asp,nakowakowetu,,,,,,3,0,0
+test,asp,uqaleke,,...a. Kufike udaba e Yerusalem lokuba umsebenzi ongummangaliso uqaleke e Antiyokwe nakwizipaluka zalo. Yaye ingenawo ama Yuda odwa...,,,,3,0,0
+val,asp,zikalazo,zikhalazo,...asi nezi caka zawo ngalo mteto mtsha ite : — “ Umtombo wezi zikalazo zingaka kungokuba izicaka zibhatalwa umvuzo omncinane kakul...,,,,4,0,3
+test,asp,nayipina,nayiphina,"...ETO WOKUBOTOZA IZILEPEREka ’84 ISIQENDU ESONGEZELELWEYO. 6. Nayipina Imantyi etunyelwe isaziso, ngokwemigaqo yalo Mteto, ngokush...",,,,210,0,231
+val,asp,abaninizo,,"...1890, __ - ZI zinecwadi za Bantsundu abangaziwayo I abaninizo, ezikwi Post Office yase Qonce ngo 20 February, 1891 . — Bo...",,,,84,0,0
+test,asp,bekutaza,bekhuthaza,,,,,3,0,2
+val,asp,itetelelwa,,"...obom amadoda, ngokungamkeleki kwayo; kodwa yindawo ebihlala itetelelwa kwimihlati yelipepa. Uyakuba lusizi inhlaumbi ukuyiva lento...",,,,3,0,0
+test,asp,umgangato,umgangatho,"...zingabisaba nanto zinokuyifundisa umlisela kuba zingekuwo umgangato omnye entlalweni, azingebe namatuba amahle ukwalusa izimilo...",,,,7,0,1033
+val,asp,upawu,uphawu,"...WE lihashe lam. Limhlope, lihashekazi, lifupi alina lupawu, upawu lose lupupini...",,,,44,0,1612
+test,prefix_common,i polisi,ipolisi,,,,,1,0,3
+val,asp,akupe,akhuphe,"...uqinise nakulo ndawo ukuyo, uze utembele ku Tixo ucele kuye akupe amandla, ungaze wenze nto ngapandle kokumcela akomeleze. Uz...",,,,40,0,20
+test,asp,ezipete,eziphethe,...ukuba yenze umteto wokuba kubeko i Bodi (Boards) kulo lonke ezipete imicimbi yemfundo. U Mr. J. J. Jabavu (Unobhala) ufunde ipe...,,,,30,0,15
+val,prefix_common,kwa naleyo,kwanaleyo,,,,,1,80,1
+test,asp,esahlukweni,,"...ayo zihlauIwe ku Mantyi we Sithili eso, njengokuba kufuneka Esahlukweni apo salo Mteto. CHARLES CURREY, Umpatiswa Ongapantsi Obambi...",,,,6,0,0
+val,asp,lituba,lithuba,... ibijongwe njengawo yintsapo kwanangabantu abakulu. Ube uba lituba abebesiti onyana be Healdtown abasebenza mgama bazimisele u...,,,,17,0,29
+test,asp,ipete,iphethe,"...ne, ngoku kungeniswa. amagama ungafika iqala kusasa ihlwise ipete umqulu omdala wabavoti, ihamba ihlanganisa bonke abakowayo ...",,,,33,0,20
+val,asp,werafu,werhafu,"... ka 1882, ifuneka ibhatelwe ngapambili, ngokutwasa komnyaka werafu. Civil Com.’s Office, Kingwilliamstown....",,,,30,0,11
+test,asp,ndondo,,"...zikolo kwabonakala ezivumileyo izezi i — I Tsomo, Nomahaya, Ndondo’s esipetwe ngu Mr. W. G. Msikinya, Dingiswayo’s esipetwe ng...",,,,7,0,0
+val,asp,eziqelekileyo,eziqhelekileyo,,,,,2,0,232
+test,prefix_common,kwi xabiso,kwixabiso,,,,,2,192,99
+val,asp,ekasa,ekhasa,,,,,1,0,3
+test,prefix_common,kwi bandla,kwibandla,"...na nawe. Ufuduke ngolwesi-Hlanu Iwegqitileyo e Dikeni ukuya kwi Bandla ahpatisiweyo, esivuya nalo kuba lingasakuba lifumene umfund...",,,,4,10,26
+val,asp,ezikangelweyo,ezikhangelweyo,...no. U MR. WILLIAM HAY INTLANGANISO usicela ukuba sivakalise EZIKANGELWEYO. ukuba uyakuba netuba lokudibana namadoda awashiya imicimbi...,,,,1,0,4
+test,asp,utelekiso,uthelekiso,"..., wakupa imikosi u Rulumente ukuya kwa Native Commissioner, UTELEKISO. Wabuya watumela kwi nkosi engu Zihlahla ukuba mayiye kubam...",,,,2,5,172
+val,asp,lokubeta,lokubetha,"...gu Charles Williams efuna ukumenzakalisa, ute yena unetyala lokubeta lodwa, kungeko kufuna kwenza ngozi. U Mr. Tamplin uyamkele ...",,,,19,0,23
+test,asp,sanisi,,"... ngo kubanjwa, waya Emonti ngo January 1883. Igama lake ngu Sanisi elinye ngu John Nkomo ; u yise ngu Jacob, ibala lake umnyam...",,,,9,0,0
+val,asp,kwabapati,kwabaphathi,"... yalo club yinto ka Nkomo, u John J.; kwi Komiti, ngapandle kwabapati msebenzi, kufakwe u Shadrach Mkapa. Igama layo yi Kubusi Na...",,,,9,0,30
+test,asp,okutengisa,okuthengisa,,,,,3,0,2
+val,asp,baptists,,"...sebenzini Nkosi, ukuba zidweliswe kwelibala.] ABAPEHLELELI (Baptists). Kwi Ngqungqutela yeli Bandla...",,,,4,0,0
+test,asp,iroxisiwe,irhoxisiwe,"...unyanyiswa kwaso. Ngenxa enoko ke uyaziswa wonke umzi ukuba iroxisiwe kwakona i Tournament nouyaka nje. P. Y. RWEXU, Chairman. 12...",,,,13,0,100
+val,asp,lamakulu,lamakhulu,...uneka ke ukuba ucango lwemiteto yalo lunge luyavulwa. Ukuba lamakulu mabini amalungu ebeze onke apa e Rini ebeya kutiwani? ebeya...,,,,5,0,21
+test,asp,kungalilungelo,,...ndawo Ivenkile ezimpahla ihlokonyiswe ngbzaziso kwi “ Mvo.” Kungalilungelo nakubo bengayifihlanga lonto kubaninivenkile. GRAHAMSTOWN A...,,,,60,0,0
+val,prefix_common,ne fidyoli,nefidyoli,"... kuhlokoma amazwi, namaxilongo, no hadi, ne piyan namagubu, ne fidyoli, ne konsatina amacalan’ onke kuvunywa u “ God save the Quee...",,,,2,2,2
+test,asp,etnakaya,,"...nye imini apa eba Tenjini malunga noma Cala, afika ugemvula etnakaya atnadeda ebevela kuyitandazela. Imvo Zabantsundu. NGOLWESI-...",,,,3,0,0
+val,asp,ipepa,iphepha,...J. J. Madubela ukuba alese ipepa awayelibhalile ngalambuzo “ kulungilena kwindodana efundile...,,,,2000,0,735
+test,asp,yokupefumla,yokuphefumla,,,,,1,0,16
+val,asp,ifunjatiswe,ifunjathiswe,"...amba ngoluhlobo: Eyasemini, vonke imibedesho nentshumayelo, ifunjatiswe u Rev. R. W. Lewis; eyokumka komhla u Rev. E. Makiwane; kvv...",,,,1,0,1
+test,asp,nangase,,"...gu JOHN JACOB, yaya kulamacala angase Katala, kwa Mankazana nangase Qohi, ihambela YEKELE. kwadade wayo,...",,,,42,0,0
+val,asp,ekapukapu,ekhaphukhaphu,...sesamatye. Ukubeka isitena pezu kwesinye xa kwakiwayo yinto ekapukapu kangangokuba nawupina umntu onengqondo angayifunwa kwisitub...,,,,17,0,15
+test,asp,yarazuka,,...nye ke inyilikityawe eqala kweliqela iye kwidakwa elibhatyi yarazuka kwasala umhlana. Lombindi wesibini e Rini upiwe igama lokub...,,,,4,0,0
+val,prefix_common,ne sele,nesele,...dwa soka siqonde ukuba iyakumelana na nama Tempile. Yinyoka ne sele um-Tempile ne hopisi. Isipelo iyakupuma i hopisi kula Maxam...,,,,2,1686,5
+test,asp,sisituba,sisithuba,"...ese mneinane we Lawu wase Tinara. Yoaa akuxesha lide es'fn, sisituba seveki ezintatu....",,,,1,0,38
+val,asp,kweyasemva,,"...osikazi, empemvu, enqunyulwe umsila, olunye unyawo lumhlope kweyasemva. (2) Elinye yi Pony ebomvu esingci simnyama enqunyulwe kaku...",,,,6,0,0
+test,asp,engekoyo,engekhoyo,"...seke njengokuba kuqiniseke awetaitile. Yitaitile yodwa into engekoyo,...",,,,38,1,53
+val,asp,kwimigangato,kwimigangatho,,,,,1,0,110
+test,asp,olute,oluthe,"...gaze angene e Palamente, alibanga nakupumelela; kwanoloyiko olute lwangenela amanye amalungu ngendawo yokuba lonto inge...",,,,16,0,303
+val,asp,akubeva,,,,,,3,0,0
+test,asp,kukuti,kukuthi,...za ndakugoduka kuwo onke amakowetu akwindawo ngendawo — oko kukuti ndisapikisana nesosiroro ngokwangoku. Impi yase Gala ibinec...,,,,439,0,196
+val,prefix_common,no mcinga,nomcinga,,,,,1,0,2
+test,asp,ukuqayisa,ukuqhayisa,...qulo Iwawo — ivoti zawo. Nawo enza into eswele intelekelelo ukuqayisa ngento yokutumela owebala e Palamente lisemgama ngenyanga e...,,,,3,0,11
+val,asp,napambili,naphambili,"...lana nesimilo abesiso kwimini zangapambili bati angayilonto napambili e Palamente. U Mr. Cloete, umnumzana, kade kwabantsundu pes...",,,,6,0,17
+test,asp,ukubakuko,ukubakukho,"...ba zezezibonda, ze zenze intando yazo ngazo, eloti elonxowa ukubakuko olicelayo alipiwe sisibondo...",,,,2,0,2
+val,asp,nezakiwo,nezakhiwo,...fundo. 8. Yonke into eyenziwayo mayelana nempabla efunekayo nezakiwo mayenziwe ngokwanelisa u Mongameli wemfundo. 9. Yonke impah...,,,,7,0,22
+test,prefix_common,kwa banye,kwabanye,,,,,2,19,122
+val,asp,yokutumela,yokuthumela,...osi mhlaumbi ngetshek egameni lika J. TENGO-JABAVU. Indleko yokutumela imali yeposi neyokwanana itshek e-Bankeni ayinakumelwa siti...,,,,27,0,59
+test,asp,ichapaza,ichaphaza,,,,,1,0,14
+val,prefix_common,ne lizwi,nelizwi,...nqi idabi lokukanya okuhamba ne Lizwi. Akunjalo kweli letu. Amakolwa antsundu asabonakala engene ...,,,,1,94,21
+test,asp,iyaneta,iyanetha,,,,,2,0,1
+val,prefix_common,nge ngoma,ngengoma,.... Yayintlanganiso eyole ku-- nene ke leyo. Yamana ukuvangwa nge ngoma ezivunywe zintombi zipetwe ngu Miss Davidson; zivunywe ngok...,,,,2,40,11
+test,asp,ezito,ezitho,"...azana yabo bati i slow — hayi, tina besiweyitelwa zintokazi ezito vingci, asinasiroro. Kwakuhle, amanono angene namanenekazi,...",,,,3,0,14
+val,asp,segqita,segqitha,...a ibivuse umsindo ingeva. Imantyi ite eso sohlwayo sibeside segqita emfanelweni. Ngati kwaye kukutshwe umteto ngu Rulumeni ukub...,,,,4,0,1
+test,asp,keeper,,"...dle, Pezisa no Bali ’ ’ Kula magama asiboni mntu uvi wicket keeper kanti iya funeka kakniu. yindawo yokuba ikangelwe yi Kornil...",,,,7,0,0
+val,prefix_common,nge minikelo,ngeminikelo,,,,,1,0,2
+test,asp,zicitwa,zichithwa,,,,,2,0,2
+val,asp,wezixobo,wezixhobo,,,,,3,0,65
+test,asp,situ,sithu,"...i-Hlanu, waye uquba umpunga wentlanganiso. Okwanamhla asina situ ba sawo ngeyetu inteto. ABALIMI NA BARWEBI Ixabiso loboya k...",,,,2,0,1
+val,asp,mpandle,mphandle,,,,,1,0,10
+test,asp,iramente,,...awabo bangapandle kwe ramente. Aba fundisi namalungu ezinye iramente aya kunigqala. Abanye abangawubonele nto...,,,,265,0,0
+val,asp,ngomqubi,ngomqhubi,,,,,1,0,2
+test,prefix_common,nge ncwadi,ngencwadi,"...ti yenze isitonga esinye ukubulela. Umbulelo lowo ubhekiswe nge ncwadi e Kapa, luti udaba Iwe ntlanganiso nganye lubhengezwe emape...",,,,4,323,20
+val,asp,inteto,intetho,"..., kume eliti Isitunywa endaweni yalo. Andivumelananga naye. Inteto...",,,,2991,0,525
+test,asp,owakupa,owakhupha,,,,,1,0,1
+val,asp,imbuto,imbutho,...nalo ulangazelelo lokuba umzi ubenento ezintle ozibonisayo. IMBUTO EBALULEKILEYO IDINALA E SIDUTYINI. Kwintlanganiso ebiko e S...,,,,30,0,2
+test,prefix_common,nga mabala,ngamabala,"...lake. Asibizi ’Nto Ngokuba ubani eze kubona Amabala nga mabala amahle e WA G. WHITAKER, kwivenkile etengela nentwana ezinc...",,,,2,31,5
+val,asp,iyakuwuqala,,,,,,4,0,0
+test,asp,sose,,,,,,3,0,0
+val,asp,kwengapaya,kwengaphaya,,,,,4,0,2
+test,prefix_common,ne ngqolowa,nengqolowa,"...sizi lusekubeni abantu bengalimi ngenxa yokunqaba kwemvula, ne ngqolowa zabo zitshe kakulu kanye. Ibiseyikolise ngokudubula apa...",,,,1,2,9
+val,asp,liyiqube,liyiqhube,,,,,1,0,3
+test,asp,ababenamatyala,,"...PA. Ingubo, Ibhulukwe, Ityali, Zonke intwana ntwana ziko. I Ababenamatyala kwa KEEVY mabeze kurafa kuye. Yizani kuzibonela ngokwenu! I...",,,,32,0,0
+val,asp,kungatintelwa,kungathintelwa,"...telo liraba^a ngakuma Silamsi. Okweyake indawo yena, akangi kungatintelwa nabanina ekuwuxubusheni lomcimbi, kuba unyulo olukuiu luyas...",,,,2,0,2
+test,asp,ampate,,"... yati, Nanko ke u William Nota ndimnikela kwaku Mqikela aze ampate kuhle angamoni, yati ukuba uyakupatwa kakubi lonto u Rulume...",,,,3,0,0
+val,asp,bezikali,bezikhali,,,,,1,0,2
+test,prefix_common,nge xabiso,ngexabiso,...lokwe (Drapery) ngexesha le Fandesi i 1s ebifudula isapulwa nge xabiso le ponti iyakuyekwa. Isebe lezinxibo lakwa BON MARCHE 400 i...,,,,99,192,118
+val,prefix_common,ne minye,neminye,"...Kweta, eye Lali zabamnyama, Izibhadubhadu, Inkosi ne Zicaka ne minye imiteto; kodwa (yaye silapo esona siroro) u Rulumeni akayih...",,,,4,5,107
+test,prefix_common,ne nxeba,nenxeba,,,,,1,0,2
+val,prefix_common,na maba,namaba,,,,,1,5,1
+test,prefix_common,nge pensile,ngepensile,,,,,1,1,2
+val,asp,lipumelelise,,"...onke kulamaqela. Ungenisa indawo yokuba acele ibandla ukuba lipumelelise ukuxoxwa kwesibini kwa'omteto, ukuze abeke pambi kwe Komiti...",,,,5,0,0
+test,asp,amaxego,amaxhego,"...GO (wakwa-Toyise), KETE (kwa-Mqayi) obuze ukuba ayakutinina amaxego yati imantyi ayakuncedwa ngaba. fana, UMANGANYA (wase Zelen...",,,,19,0,7
+val,asp,ngekulu,ngekhulu,"...ngeponti ikmaqanda, 9d to 1/ ngedazini 8ihabile, 2/9 to 5/3 ngekulu 1[nkuni, 5/9 to 10/ ngeflara ^({)E-KOMANI (Aug. 3.) t[botol...",,,,4233,0,19

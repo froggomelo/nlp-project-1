@@ -1,0 +1,20 @@
+{
+ "variant": "modern_prefix",
+ "rules": [
+  "prefix"
+ ],
+ "tau_o": 2,
+ "tau_v": 5,
+ "threshold_source": "provisional (no labelled words yet)",
+ "xh_tokens": 3696881,
+ "tokens_changed_by_rule": {
+  "prefix_common": 633,
+  "prefix_proper": 169556
+ },
+ "share_tokens_changed": 0.0460358339908696,
+ "share_chunks_changed": 0.8102590864440079,
+ "likely_name_rewrites": 0,
+ "likely_name_types": 0,
+ "top_asp": [],
+ "top_likely_names": []
+}

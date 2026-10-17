@@ -1,0 +1,196 @@
+{
+ "table": [
+  {
+   "text": "Imvo isiXhosa (raw)",
+   "oov_tokens": 0.31505708176857916,
+   "fertility_LaBSE": 2.1125812635209993,
+   "fertility_XLM-R": 2.4961491167044465
+  },
+  {
+   "text": "Imvo English (reference)",
+   "oov_tokens": NaN,
+   "fertility_LaBSE": 1.2578264515738877,
+   "fertility_XLM-R": 1.375060564971916
+  },
+  {
+   "text": "Imvo isiXhosa (modern)",
+   "oov_tokens": 0.2678273266247631,
+   "fertility_LaBSE": 2.117300387967186,
+   "fertility_XLM-R": 2.523785773460756
+  },
+  {
+   "text": "Imvo isiXhosa (modern_asp)",
+   "oov_tokens": 0.24497144170447485,
+   "fertility_LaBSE": 2.094539817520831,
+   "fertility_XLM-R": 2.5113384776239496
+  },
+  {
+   "text": "Imvo isiXhosa (modern_prefix)",
+   "oov_tokens": 0.34174647923872975,
+   "fertility_LaBSE": 2.1373280616640087,
+   "fertility_XLM-R": 2.508841023670069
+  },
+  {
+   "text": "Modern isiXhosa, Vukuzenzele (reference)",
+   "oov_tokens": 0.0,
+   "fertility_LaBSE": 2.184458062701063,
+   "fertility_XLM-R": 2.9164312013014815
+  }
+ ],
+ "by_year": [
+  {
+   "variant": "raw",
+   "year": 1884,
+   "oov_tokens": 0.31325111684389356,
+   "fertility_LaBSE": 2.2027198549410696,
+   "fertility_XLM-R": 2.5629797521909943
+  },
+  {
+   "variant": "raw",
+   "year": 1885,
+   "oov_tokens": 0.3348697691525084,
+   "fertility_LaBSE": 2.1667497101240065,
+   "fertility_XLM-R": 2.5679846517064266
+  },
+  {
+   "variant": "raw",
+   "year": 1886,
+   "oov_tokens": 0.31407546210416293,
+   "fertility_LaBSE": 2.0887597178881294,
+   "fertility_XLM-R": 2.4821064593517197
+  },
+  {
+   "variant": "raw",
+   "year": 1887,
+   "oov_tokens": 0.3030101193676228,
+   "fertility_LaBSE": 2.1340783396481053,
+   "fertility_XLM-R": 2.5058975867084308
+  },
+  {
+   "variant": "raw",
+   "year": 1888,
+   "oov_tokens": 0.31077210908829245,
+   "fertility_LaBSE": 2.12409621919063,
+   "fertility_XLM-R": 2.4804931519766154
+  },
+  {
+   "variant": "raw",
+   "year": 1889,
+   "oov_tokens": 0.3053374119242286,
+   "fertility_LaBSE": 2.0834697468650445,
+   "fertility_XLM-R": 2.465568202293281
+  },
+  {
+   "variant": "raw",
+   "year": 1890,
+   "oov_tokens": 0.3087046703352242,
+   "fertility_LaBSE": 2.0761829894930592,
+   "fertility_XLM-R": 2.483637548891786
+  },
+  {
+   "variant": "raw",
+   "year": 1891,
+   "oov_tokens": 0.31467872943690334,
+   "fertility_LaBSE": 2.139535476552368,
+   "fertility_XLM-R": 2.50187523699363
+  },
+  {
+   "variant": "raw",
+   "year": 1892,
+   "oov_tokens": 0.3185316713340711,
+   "fertility_LaBSE": 2.105954130090294,
+   "fertility_XLM-R": 2.5035137070202884
+  },
+  {
+   "variant": "raw",
+   "year": 1893,
+   "oov_tokens": 0.319854796210125,
+   "fertility_LaBSE": 2.117344502728138,
+   "fertility_XLM-R": 2.500880841129189
+  },
+  {
+   "variant": "raw",
+   "year": 1894,
+   "oov_tokens": 0.3205377265876692,
+   "fertility_LaBSE": 2.085441471484772,
+   "fertility_XLM-R": 2.4760310554151577
+  },
+  {
+   "variant": "modern",
+   "year": 1884,
+   "oov_tokens": 0.25348099216371994,
+   "fertility_LaBSE": 2.199002719854941,
+   "fertility_XLM-R": 2.590903596252644
+  },
+  {
+   "variant": "modern",
+   "year": 1885,
+   "oov_tokens": 0.279140023910272,
+   "fertility_LaBSE": 2.1639277847886116,
+   "fertility_XLM-R": 2.594671869688517
+  },
+  {
+   "variant": "modern",
+   "year": 1886,
+   "oov_tokens": 0.26431031411436373,
+   "fertility_LaBSE": 2.090252349429102,
+   "fertility_XLM-R": 2.5100290409278667
+  },
+  {
+   "variant": "modern",
+   "year": 1887,
+   "oov_tokens": 0.25323361460409766,
+   "fertility_LaBSE": 2.135263784212614,
+   "fertility_XLM-R": 2.530823838378312
+  },
+  {
+   "variant": "modern",
+   "year": 1888,
+   "oov_tokens": 0.26273818137964305,
+   "fertility_LaBSE": 2.1306832532404774,
+   "fertility_XLM-R": 2.508046890522551
+  },
+  {
+   "variant": "modern",
+   "year": 1889,
+   "oov_tokens": 0.2588951033566587,
+   "fertility_LaBSE": 2.089833581880705,
+   "fertility_XLM-R": 2.4937722590464215
+  },
+  {
+   "variant": "modern",
+   "year": 1890,
+   "oov_tokens": 0.2673641840833277,
+   "fertility_LaBSE": 2.0871999386456017,
+   "fertility_XLM-R": 2.513110667996012
+  },
+  {
+   "variant": "modern",
+   "year": 1891,
+   "oov_tokens": 0.2704189984215813,
+   "fertility_LaBSE": 2.1462302478754216,
+   "fertility_XLM-R": 2.530145589767611
+  },
+  {
+   "variant": "modern",
+   "year": 1892,
+   "oov_tokens": 0.2692320564643584,
+   "fertility_LaBSE": 2.1108743378927257,
+   "fertility_XLM-R": 2.530164267075666
+  },
+  {
+   "variant": "modern",
+   "year": 1893,
+   "oov_tokens": 0.2736515253839152,
+   "fertility_LaBSE": 2.1228369999374355,
+   "fertility_XLM-R": 2.528494798921258
+  },
+  {
+   "variant": "modern",
+   "year": 1894,
+   "oov_tokens": 0.27757534281481266,
+   "fertility_LaBSE": 2.089668603287914,
+   "fertility_XLM-R": 2.5043899643071152
+  }
+ ]
+}
