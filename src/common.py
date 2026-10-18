@@ -27,6 +27,12 @@ def load_embeddings(df, variant="raw", model_tag="LaBSE", emb_dir="data/embeddin
     full = emb_dir / f"{variant}_{model_tag}.npy"
     if full.exists():
         emb = np.load(full)
+        ids_file = emb_dir / f"{variant}_ids.txt"
+        if ids_file.exists():
+            ids = ids_file.read_text(encoding="utf-8").split("\n")
+            if len(ids) != len(emb) or ids != df["chunk_id"].iloc[:len(ids)].tolist():
+                raise SystemExit(f"{full} does not match the chunks on disk (different bundle or chunks "
+                                 "file): rebuild the Colab bundle from these chunks and re-embed")
     else:
         shards = sorted((emb_dir / f"{variant}_{model_tag}_shards").glob("*.npy"))
         if not shards:

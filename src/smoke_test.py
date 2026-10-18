@@ -58,14 +58,24 @@ def main():
         Path(f"data/embeddings/{v}_ids.txt").write_text("\n".join(df["chunk_id"]), encoding="utf-8")
         sh("src/pairs.py", "candidates", "--variant", v, "--model-tag", TAG)
 
-    # fake labels: 2 if the pair shares >= 3 names/numbers, else 0
+    # fake labels: 2 if the pair shares >= 3 names/numbers, else 0.
+    # pairs.py sheet writes labels/pairs_to_label.csv, so a real sheet (possibly being labelled) is
+    # moved aside first and always put back, even if this step fails.
     rd = run_dir("raw", TAG)
-    sh("src/pairs.py", "sheet", "--model-tag", TAG, "--n", "300")
-    sheet = pd.read_csv("labels/pairs_to_label.csv")
+    real = Path("labels/pairs_to_label.csv")
+    backup = rd / "real_pairs_to_label.csv.bak"
+    if real.exists():
+        shutil.move(real, backup)
+    try:
+        sh("src/pairs.py", "sheet", "--model-tag", TAG, "--n", "300")
+        sheet = pd.read_csv(real)
+        real.unlink()  # don't leave a FAKE-based sheet where labellers would find it
+    finally:
+        if backup.exists():
+            shutil.move(backup, real)
     sheet["label"] = np.where(sheet["shared"].fillna("").str.split().str.len() >= 3, 2, 0)
     fake_labels = rd / "fake_pairs_labelled.csv"
     sheet.to_csv(fake_labels, index=False)
-    Path("labels/pairs_to_label.csv").unlink()  # don't leave a FAKE-based sheet where labellers would find it
     sh("src/pairs.py", "tune", "--model-tag", TAG, "--labels", str(fake_labels), "--min-precision", "0.6")
 
     sh("src/classify.py", "--variant", "raw", "--model-tag", TAG, "--n-boot", "100")

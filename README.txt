@@ -88,6 +88,82 @@ PIPELINE (run from the project root)
   Check that everything runs without a GPU (stand-in embeddings; numbers meaningless):
        python src/smoke_test.py   then   python src/smoke_test.py --clean
 
+HANDOVER: COMMAND REFERENCE
+  Run every command from the project root (the folder containing README.txt and src/).
+
+  Git (team workflow)
+    git pull                                   start of every session: get teammates' changes
+    git status                                 see what you changed
+    git add <file> ...                         stage code, labels/*.csv, report/*; never data/ or *.parquet
+    git commit -m "What changed and why"
+    git push origin project-2
+    The .gitignore already keeps data, embeddings, parquet files and zips out. Never force-push:
+    it can delete teammates' work. Commit finished label files (labels/*_labelled.csv) so everyone
+    uses the same labels.
+
+  Checks
+    python --version                           must be 3.11 or newer
+    python -m pip install -r requirements.txt
+    python src/smoke_test.py                   whole pipeline on stand-in embeddings (~5 min, needs
+                                               "prepare" first); prints SMOKE TEST PASSED
+    python src/smoke_test.py --clean           remove its FAKE outputs afterwards
+
+  Text preparation (CPU)
+    python src/run_all.py prepare              all of the below, in order (~4 min)
+    python src/prepare_data.py                 data/processed/chunks.parquet, splits.json, data_card.md
+    python src/build_lexicon.py                data/modern/lexicon.parquet (downloads corpora)
+    python src/normalise.py candidates         data/processed/normaliser_candidates.parquet
+    python src/normalise.py apply --rules all      -> chunks_modern.parquet
+    python src/normalise.py apply --rules asp      -> chunks_modern_asp.parquet
+    python src/normalise.py apply --rules prefix   -> chunks_modern_prefix.parquet
+    python src/tool_metrics.py                 results/tool_metrics/
+    python src/synthetic_check.py              results/synthetic/
+
+  Labelling (people; see labels/LABELLING_GUIDE.md)
+    python src/normalise.py sheet              ONCE -> labels/normaliser_to_label.csv
+                                               fill in, save as labels/normaliser_labelled.csv
+    python src/normalise.py tune               thresholds -> results/normaliser/threshold.json
+    python src/pairs.py sheet                  ONCE, after raw embeddings exist -> labels/pairs_to_label.csv
+                                               fill in, save as labels/pairs_labelled.csv
+    python src/pairs.py tune                   pair threshold (+ Cohen's kappa if label_2 is filled)
+
+  Embeddings (GPU, browser Colab; do not run LaBSE on a laptop with < 6 GB free RAM)
+    python src/make_colab_bundle.py            colab/colab_bundle.zip (includes labels and the normaliser
+                                               threshold if they exist)
+    In Colab: upload colab/embed_on_colab.ipynb, Runtime -> T4 GPU, Run all, upload the bundle.
+    Unzip the downloaded embeddings_all.zip into data/embeddings/; it should then contain
+    raw_LaBSE.npy, modern_LaBSE.npy, modern_asp_LaBSE.npy, modern_prefix_LaBSE.npy,
+    raw_multilingual-e5-base.npy, modern_multilingual-e5-base.npy and the *_ids.txt files.
+
+  Analysis (CPU)
+    python src/run_all.py analyse                          LaBSE: pairs, classifier, compare, qualitative
+    python src/run_all.py analyse --threshold 0.55         provisional run before pair labels exist
+    python src/run_all.py analyse --model-tag multilingual-e5-base     second encoder
+    Results for the report: results/compare/compare.md and fig_compare.png, results/raw/stage1.json,
+    results/raw/qualitative.md, plus the tool_metrics, synthetic and normaliser folders.
+
+  What to rerun when something changes
+    normaliser labels change   normalise.py tune -> the three "apply" commands -> make_colab_bundle.py
+                               -> re-embed the modern variants in Colab -> run_all.py analyse
+    pair labels change         run_all.py analyse (pairs.py tune runs inside it); no re-embedding
+    code in classify/compare/qualitative changes   run_all.py analyse only
+    raw data or prepare_data.py changes            everything, including all embeddings
+
+  Do not
+    - rerun "normalise.py sheet" or "pairs.py sheet" once labelling has started (they overwrite the sheet)
+    - change the seed (13) or edit data/processed/splits.json (it fixes the train/val/test issues)
+    - mix embeddings from different bundles: every *.npy must come from the same chunks files
+    - commit data/, *.parquet, *.npy or *.zip
+
+  Troubleshooting
+    "too few reference pairs"          threshold too high or too few labelled pairs: check
+                                       results/raw/pair_threshold.json and the labels
+    "embeddings incomplete"            an embedding run stopped early: rerun that Colab cell
+    "does not match the chunks on disk"   embeddings built from a different bundle than the chunks
+                                       files on disk: rebuild the bundle and re-embed
+    run stopped for low memory         close other apps, or run that step in Colab
+    FileNotFoundError on *.parquet     run "python src/run_all.py prepare" first
+
 OUTPUTS
   data/processed/data_card.md            corpus statistics
   results/normaliser/                    thresholds, what changed, likely-name rewrites
