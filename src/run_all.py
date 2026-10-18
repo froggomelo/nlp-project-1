@@ -40,7 +40,14 @@ def main():
         sh("src/synthetic_check.py")
         return
 
-    for v in VARIANTS:
+    # only the variants embedded with this encoder (the Colab notebook embeds raw + modern for E5)
+    variants = [v for v in VARIANTS if Path(f"data/embeddings/{v}_{a.model_tag}.npy").exists()]
+    if "raw" not in variants:
+        sys.exit(f"\nNo data/embeddings/raw_{a.model_tag}.npy: run the embedding step first (see README).")
+    skipped = sorted(set(VARIANTS) - set(variants))
+    if skipped:
+        print(f"\n{a.model_tag}: no embeddings for {skipped}; analysing {variants}")
+    for v in variants:
         sh("src/pairs.py", "candidates", "--variant", v, *tag)
     if Path("labels/pairs_labelled.csv").exists():
         sh("src/pairs.py", "tune", *tag)
@@ -53,9 +60,10 @@ def main():
         sys.exit("\nLabel labels/pairs_to_label.csv (see labels/LABELLING_GUIDE.md), save it as "
                  "labels/pairs_labelled.csv and rerun, or pass --threshold for a provisional run.")
     sh("src/classify.py", "--variant", "raw", *tag, *thr)
-    for v in VARIANTS[1:]:
+    for v in variants[1:]:
         sh("src/classify.py", "--variant", v, "--pairs-from", "raw", "--k-from", "raw", *tag, *thr)
-    sh("src/compare.py", *tag)
+    if len(variants) > 1:
+        sh("src/compare.py", "--variants", *variants, *tag)
     sh("src/qualitative.py", *tag)
 
 
