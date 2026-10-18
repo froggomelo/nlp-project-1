@@ -16,6 +16,39 @@ DATA
   Modern isiXhosa corpora (Vukuzenzele, isiXhosa Wikipedia, OPUS-100 en-xh) download automatically
   from Hugging Face in step 1.
 
+STARTING FROM A CLONE OF THIS BRANCH
+  The repository holds code only. The course data and every generated .parquet file are deliberately
+  not committed, so a fresh clone cannot run the Colab notebook until the data is rebuilt:
+
+  1. Clone the branch and install the packages (Python 3.11+):
+       git clone -b project-2 https://github.com/froggomelo/nlp-project-1.git
+       cd nlp-project-1
+       python -m pip install -r requirements.txt
+
+  2. Get TxtLangFiles1870-1894_TB.zip from Moodle and extract it into data/raw/ so that this file
+     exists:
+       data/raw/TxtLangFiles1870-1894_TB/XhTxt/IMVO_1884-11-03_p001.txt
+     Windows "Extract All" sometimes creates a doubled folder
+     (data/raw/TxtLangFiles1870-1894_TB/TxtLangFiles1870-1894_TB/); if so, move the inner folder up one
+     level. The __MACOSX folder can be deleted.
+
+  3. Build the processed data (~4 min; downloads the modern isiXhosa corpora on the first run):
+       python src/run_all.py prepare
+     Check data/processed/data_card.md: it must say "kept (>= 1000 words in both languages): 511".
+     If it does, your data matches the rest of the team's.
+
+  4. Build the Colab bundle:
+       python src/make_colab_bundle.py
+     It should list data/processed/chunks.parquet and data/processed/normaliser_candidates.parquet
+     and report a size of about 26-27 MB. Upload colab/colab_bundle.zip in the notebook (step 3 below).
+
+  Every step in "prepare" is deterministic (seed 13), so rerunning it is safe: it overwrites its
+  outputs with identical files and never touches labels/ or data/embeddings/. The one difference
+  between machines can come from the modern word list, which is downloaded from Hugging Face at build
+  time; if the team needs identical normaliser output, share one colab_bundle.zip instead of each
+  person rebuilding it. Do NOT rerun "normalise.py sheet" or "pairs.py sheet" once labelling has
+  started: they overwrite the blank labelling sheets.
+
 PIPELINE (run from the project root)
   1. Text preparation (CPU, ~5 min):
        python src/run_all.py prepare
