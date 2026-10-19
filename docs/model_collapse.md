@@ -54,6 +54,8 @@ Each generation starts from the same initialisation by default. `--gen_init cont
 | `replace100` | `--gen_replace_frac 1.0` | 0% |
 | `accumulate` | `--gen_mode accumulate` | 1 / (g + 1) |
 
+[experiments.md](experiments.md) lists the sweeps built on these conditions, and [results.md](results.md) reports their results.
+
 To run one experiment by hand, call `src.main` directly, for example with `--model_variant extended --generations 6 --gen_dataset_size 20000 --gen_replace_frac 0.5`, plus the shared flags in the script's `COMMON_ARGS`.
 
 | Flag | Default | Meaning |

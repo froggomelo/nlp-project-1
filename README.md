@@ -30,7 +30,7 @@ Run all commands from the project folder. Use Python 3.9–3.12.
    bash scripts/nlp_project_run.sh
    ```
 
-   The script takes no parameters. It runs every experiment one after the other (see [Experiments](#experiments)) on the included `data/omniglot_resnet18_randomized_order_s0.h5` dataset. Edit the constants at the top of the script to change them. `MAIN_RUN_ITERS` sets the training sequences per run, or per generation for the collapse runs (default: 1,000,000 sequences, or 31,250 batches). The script trains 398 times in total (2 single runs plus 66 collapse runs of 6 generations), so lower `MAIN_RUN_ITERS` or switch off the sweeps with `SMALL_POOL_SWEEP`, `ZIPF_SWEEP`, and `BURST_SWEEP` for a shorter run. `CIRCUIT_DISCOVERY=1` discovers the circuits of each trained model after every generation, and `0` turns it off.
+   The script takes no parameters. It runs every experiment in order (see [Experiments](#experiments)) on the included `data/omniglot_resnet18_randomized_order_s0.h5` dataset. Edit the constants at the top of the script to change them. It first tunes the learning rate and the training length for each variant on generation 0 (`TUNE_RUNS`), and every later run uses the chosen pair; [experiments.md](docs/experiments.md#tuning) explains the selection. The script trains 580 times in total (8 tuning runs, 2 single runs, 75 collapse runs of 6 generations, and 6 of 20 generations), so switch off the sweeps with `GLOBAL_SWEEP`, `LONG_SWEEP`, `SAMPLING_SWEEP`, `SMALL_POOL_SWEEP`, `ZIPF_SWEEP`, and `BURST_SWEEP` for a shorter run. `JOBS=6` runs six experiments at once. `TUNE_RUNS=0` skips tuning and uses `BASE_LR`, `BASE_ITERS`, `EXTENDED_LR`, and `EXTENDED_ITERS` at the top of the script instead (default: lr 1e-5 and 1,000,000 sequences, or 31,250 batches). `MAIN_RUNS=0` skips the single and main collapse runs, so the sweeps can run on their own later. These switches, `JOBS`, and the four tuned values can also be set in the environment, as in `TUNE_RUNS=0 MAIN_RUNS=0 bash scripts/nlp_project_run.sh`. `CIRCUIT_DISCOVERY=1` discovers the circuits of each trained model after every generation, and `0` turns it off.
 
    Each experiment's terminal output (including errors) is saved to `results/<timestamp>_<name>.log`. A failed experiment does not stop the others. At the end, `results/<timestamp>_summary.log` lists each experiment as OK or FAILED.
 
@@ -62,6 +62,7 @@ Run all commands from the project folder. Use Python 3.9–3.12.
 
 | Experiment | Description |
 |---|---|
+| `tune_<variant>_lr<lr>` | Generation 0 on the real pool for 3,000,000 sequences at lr 1e-5, 3e-5, 1e-4, and 3e-4; selects the learning rate and training length per variant. |
 | `base` | Base model: predicts the query's value. Single generation, fresh data every step. |
 | `extended` | Extended model: also predicts the next symbol and that symbol's value. Single generation, fresh data every step. |
 | `collapse_<variant>_real_only` | Control: all generations train on the same N real sequences. |
@@ -69,9 +70,13 @@ Run all commands from the project folder. Use Python 3.9–3.12.
 | `collapse_<variant>_replace90` | 90% regenerated, 10% stays real. |
 | `collapse_<variant>_replace100` | The whole pool is regenerated each generation. |
 | `collapse_<variant>_accumulate` | Every earlier item is kept and N new generated sequences are added each generation. |
+| `collapse_extended_global_<condition>` | The five conditions for the extended model with the next symbol drawn from all training classes (`--next_symbol_source global`). |
+| `collapse_<variant>_G20_<condition>` | `real_only`, `replace100`, and `accumulate` over 20 generations. |
+| `collapse_<variant>_argmax_replace100`, `collapse_<variant>_T2_replace100` | Full replacement with argmax sampling and with temperature 2. |
+| `collapse_<variant>_T<T>_<condition>` | `scripts/forced_collapse_run.sh`: `replace50`, `replace90`, `replace100`, and `accumulate` at temperature 3 and 5, which force label errors into the pool. |
 | `collapse_<variant>_<tag>_<condition>` | Sweeps over the four replacement conditions with pool size N = 5,000 (`N5000`), Zipf α = 0.5, 1.0, and 1.5 (`zipf<α>`), and context length 8 with burstiness 1, 2, and 4 (`L8B<B>`). |
 
-The collapse experiments run for `<variant>` = `base` and `extended`, with `COLLAPSE_GENERATIONS=6` (generation 0 on real data, then 5 synthetic generations) and pool size `GEN_DATASET_SIZE=20000`. The extended model picks the next symbol from the context (`--next_symbol_source context`). [experiments.md](docs/experiments.md) lists every experiment in one grid with its flags, and records the design decisions behind the sweeps.
+The collapse experiments run for `<variant>` = `base` and `extended`, with `COLLAPSE_GENERATIONS=6` (generation 0 on real data, then 5 synthetic generations) and pool size `GEN_DATASET_SIZE=20000`. The extended model picks the next symbol from the context (`--next_symbol_source context`), except in the `global` runs. [experiments.md](docs/experiments.md) lists every experiment in one grid with its flags, and records the design decisions behind the sweeps. [results.md](docs/results.md) reports the results of every experiment set.
 
 In the replacement conditions, the same items are regenerated every generation, so the real share of the pool stays fixed from generation 1 onwards. Generated items keep their real context and query; only the model's outputs change. In accumulation, the new items are generated from the prompts of the generation 0 real pool, so the pool holds N × (g + 1) items at generation g.
 
@@ -79,6 +84,6 @@ Generated tokens are sampled from softmax(logits / T), with T = 1 by default. To
 
 Each collapse experiment writes `gen_<g>/log.h5`, `gen_<g>/checkpoints/` and `gen_<g>/pool_meta.npz` (labels, symbols and the generation that produced each item). `generations.h5` holds one row per generation of pool metrics: the share of real data, query label error, and for the extended model the next symbol's entropy, KL to generation 0, number of distinct symbols, top-10 and tail mass, and how often it falls outside its context.
 
-With circuit discovery on, every generation also writes `gen_<g>/circuit/`, and `circuits.h5` holds one row of circuit metrics per generation. Each generation's trained model is analysed on the same fixed real sequences. The value prediction gets two circuits, and the extended model adds a next-symbol circuit. Each circuit is found twice, with auto-circuit's edge attribution patching and with ACDC (Conmy et al., 2023). [circuit_discovery.md](docs/circuit_discovery.md) explains the method, the design decisions, and the outputs.
+With circuit discovery on, every generation also writes `gen_<g>/circuit/`, and `circuits.h5` holds one row of circuit metrics per generation. Each generation's trained model is analysed on the same fixed real sequences. The value prediction gets two circuits, and the extended model adds a next-symbol circuit. Each circuit is found twice, with auto-circuit's edge attribution patching and with ACDC (Conmy et al., 2023). [circuit_discovery.md](docs/circuit_discovery.md) explains the method, the design decisions, and the outputs. Each generation's model is then tested causally: head ablations, single-edge patching into each head's Q, K and V inputs, and recovery of the induction-head circuit, written to `gen_<g>/head_circuit/` and `head_circuit.h5`. [head_circuit.md](docs/head_circuit.md) describes these tests.
 
 See [model_collapse.md](docs/model_collapse.md) for the full description of the extension, its outputs, and its metrics, and [Paper_README.md](docs/Paper_README.md) for the original paper documentation.
