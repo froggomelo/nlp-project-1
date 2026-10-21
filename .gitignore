@@ -16,6 +16,7 @@ ih_paper_reprod/
 /results/
 /runs/
 wandb/
+visuals/
 
 # Local secrets (keep example configuration trackable)
 .env
@@ -26,3 +27,6 @@ wandb/
 .DS_Store
 
 _NLP_2026__Mechanistic_Interp_Collapse_Project.pdf
+
+.claude/
+
