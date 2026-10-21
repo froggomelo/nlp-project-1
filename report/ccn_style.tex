@@ -44,6 +44,13 @@
 % \usepackage[margin=0.5in]{geometry}
 \usepackage{wrapfig}
 
+% Answer macros for the NeurIPS checklist (checklist.tex), normally defined by the NeurIPS style file
+\newcommand{\answerYes}[1][]{\textcolor{blue}{[Yes] #1}}
+\newcommand{\answerNo}[1][]{\textcolor{orange}{[No] #1}}
+\newcommand{\answerNA}[1][]{\textcolor{gray}{[NA] #1}}
+\newcommand{\answerTODO}[1][]{\textcolor{red}{\bf [TODO]}}
+\newcommand{\justificationTODO}[1][]{\textcolor{red}{\bf [TODO]}}
+
 
 \title{Induction Heads and Model Collapse: How the Real-to-Synthetic Data Ratio Shapes In-Context Learning Circuits}
  
