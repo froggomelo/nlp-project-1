@@ -36,6 +36,8 @@ The fixed prompt set holds `--circuit_n_prompts` real training sequences drawn o
 
 The two value corruptions bind the target symbol to the other context value. Copying in-context therefore yields the wrong answer in both. The exemplar swap moves the matching symbol to the other position. It exposes where the induction head attends, carried by the previous-token head into the induction head's key input. The label swap keeps every position's symbol and changes the value stored there. It exposes what the induction head copies through its value input.
 
+In the extended model the final position is the next symbol, so with `--next_symbol_source context` the value targets test the next symbol's value, which is always in context. With `--next_symbol_source global` the next symbol is usually not in context and gets a fresh label, and the model learns never to predict a context label there. Its next-symbol value is not an in-context task. The value targets of global runs therefore cut the sequence after the query and test the query's value, as in the base model and the `fsl_*` evaluators. Before this change only the few prompts whose next symbol was in context passed the filter (21 of 512), and the model scored 0% on them.
+
 The next symbol is drawn uniformly from the context symbols. Its answers are all context symbols, and the logit difference averages over them. The sequence is cut after `lq` to make that position the last one, which auto-circuit reads. The model is causal and the cut leaves its activations at `lq` unchanged.
 
 ## Discovery and Faithfulness
@@ -100,6 +102,8 @@ python -m src.circuits --checkpoint results/<run>/checkpoints/<iter>.eqx \
   --run_config results/<run>/config.json --out_folder results/<run>/circuit
 ```
 
+`scripts/recompute_circuits.py` reruns circuit discovery and the head-circuit tests for every generation of finished runs from their final checkpoints. It writes `circuits_fixed.h5`, `head_circuit_fixed.h5` and `gen_<g>/circuit_fixed/` next to the originals.
+
 Both methods together take about 40 seconds per model on a laptop CPU. A run with `--circuit-discovery` but without the packages stops before training with an install hint. Training is unaffected by the flag. A two-generation test run produced identical training losses and accuracies with and without it.
 
 | Flag | Default | Meaning |
@@ -135,6 +139,8 @@ python -m plotting.circuit_plots results/<run>/circuit
 ```
 
 Pass a single `*_edges.json` file instead of a directory to render only one circuit, or use `--max-edges N` to change the readability cap.
+
+[head_circuit.md](head_circuit.md) tests the discovered circuits causally on the same prompts: which layer-0 heads feed which layer-1 heads, through which input, and how much of the behaviour the induction-head circuit recovers.
 
 ## Reading the Graphs
 

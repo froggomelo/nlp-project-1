@@ -166,8 +166,23 @@ def _swap_exemplars(x, symbols, a, b):
   return jnp.where(is_a, x_b[:, None], jnp.where(is_b, x_a[:, None], x))
 
 
-def value_pairs(model, prompts, extended, corruption):
+def value_at_query(opts):
+  '''Whether the value targets read the query's value instead of the next symbol's.
+
+  Only for the extended variant with next_symbol_source=global: its next symbol
+  is usually not in context and then gets a fresh label, so its value cannot be
+  copied in-context (the model learns to avoid the context labels there). The
+  query's value can, as in the base model and the fsl evaluators.
+  '''
+  return opts.model_variant == 'extended' and getattr(opts, 'next_symbol_source', 'context') == 'global'
+
+
+def value_pairs(model, prompts, extended, corruption, at_query=False):
   '''Clean/corrupt pairs for the value prediction at the final position.
+
+  at_query (extended only): cut the sequence after the query, making it the
+  final position; the model is causal, so this leaves its activations there
+  unchanged. Otherwise the extended variant's final position is the next symbol.
 
   Both corruptions rebind the target symbol to another context value, so
   copying in-context gives the wrong answer (the other value):
@@ -178,6 +193,8 @@ def value_pairs(model, prompts, extended, corruption):
       position carries (V path).
   '''
   x, y, s = prompts['examples'], prompts['labels'], prompts['symbols']
+  if extended and at_query:
+    x, y, s, extended = x[:, :-1], y[:, :-1], s[:, :-1], False
   n_ctx = y.shape[1] - (2 if extended else 1)
   ctx = y[:, :n_ctx]
   answer = y[:, -1]
@@ -196,7 +213,8 @@ def value_pairs(model, prompts, extended, corruption):
   corrupt, _, _ = _embed(model, x_corrupt, y_corrupt)
   return dict(clean=clean[keep], corrupt=corrupt[keep], jax_logits=out[keep, -1],
               answers=t.tensor(np.array(answer)[keep, None]),
-              wrong_answers=t.tensor(np.array(wrong)[keep, None]))
+              wrong_answers=t.tensor(np.array(wrong)[keep, None]),
+              symbols=np.asarray(s)[keep])
 
 
 def symbol_pairs(model, prompts, data, exemplar_inds, num_train_classes, seed):
@@ -220,7 +238,8 @@ def symbol_pairs(model, prompts, data, exemplar_inds, num_train_classes, seed):
   corrupt, _, _ = _embed(model, data[new, exemplars], y)
   n_ctx = symbols.shape[1] - 2
   return dict(clean=clean[:, :-1], corrupt=corrupt[:, :-1], jax_logits=symbol_out[:, -1],
-              answers=t.tensor(symbols[:, :n_ctx]), wrong_answers=t.tensor(new[:, :n_ctx]))
+              answers=t.tensor(symbols[:, :n_ctx]), wrong_answers=t.tensor(new[:, :n_ctx]),
+              symbols=symbols[:, :-1])
 
 
 def _loaders(pairs, bs):
@@ -364,7 +383,7 @@ def run_circuit_discovery(model, opts, prompts, out_folder, data, exemplar_inds,
   bs = getattr(opts, 'circuit_bs', 64)
   acdc_threshold = getattr(opts, 'circuit_acdc_threshold', ACDC_THRESHOLD)
   # target name -> (output head, pair builder)
-  targets = {'value_' + c: ('label', partial(value_pairs, model, prompts, extended, c))
+  targets = {'value_' + c: ('label', partial(value_pairs, model, prompts, extended, c, value_at_query(opts)))
              for c in ['exemplar_swap', 'label_swap']}
   if extended:
     targets['next_symbol'] = ('symbol', partial(symbol_pairs, model, prompts, data, exemplar_inds,

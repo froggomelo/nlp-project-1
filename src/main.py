@@ -498,6 +498,43 @@ def train_generation(
   return model, opt_state, seeds
 
 
+def make_eval_data(opts, data, splits, eval_data_seed):
+  '''Samples one fixed set of sequences per evaluator in opts.pe_names.'''
+  extended = opts.model_variant == 'extended'
+  next_symbol = opts.next_symbol_source if extended else None
+  eval_data = {}
+  eval_data_seeds = jax.random.split(eval_data_seed, len(opts.pe_names))
+  for i, name in enumerate(opts.pe_names):
+    assert name not in ['train', 'train_iter', 'eval_iter']
+
+    classes = splits['class'][opts.pe_classes[i]]
+    eval_class_sampler = partial(samplers.get_constant_burst_seq_idxs,
+                                  classes=classes,
+                                  class_distr=jnp.ones(len(classes))/len(classes),
+                                  num_seqs=opts.eval_iters,
+                                  context_len=smart_index(opts.pe_context_len, i, opts.train_context_len),
+                                  burstiness=opts.pe_burstiness[i],
+                                  distractor=smart_index(opts.pe_distract, i, 1),
+                                  no_support=smart_index(opts.pe_no_support, i, 0),
+                                  unique_rest=smart_index(opts.pe_unique_rest, i, 0),
+                                  next_symbol=next_symbol)
+    allowed_inds = splits['exemplar'][opts.pe_exemplars[i]]
+    eval_exemplar_sampler = partial(
+      samplers.get_exemplar_inds,
+      allowed_inds=allowed_inds,
+      match_query_and_distractors=opts.match_query_and_distractors)
+    eval_data_sampler = samplers.make_data_sampler(
+      eval_class_sampler,
+      eval_exemplar_sampler,
+      fs_relabel=splits['relabeling'][smart_index(opts.pe_fs_relabel_scheme, i, 'None')],
+      noise_scale=smart_index(opts.pe_noise_scale, i, opts.noise_scale_train),
+      assign_query_label_random=smart_index(opts.pe_assign_query_label_random, i, 0),
+      next_symbol=extended,
+      num_labels=opts.model_output_classes)
+    eval_data[name] = eval_data_sampler(eval_data_seeds[i], data)
+  return eval_data
+
+
 def run_with_opts(opts):
 
   ### Process input opts ###
@@ -583,7 +620,6 @@ def run_with_opts(opts):
   opts.eval_seed = jax.random.PRNGKey(opts.eval_seed)
 
   extended = opts.model_variant == 'extended'
-  next_symbol = opts.next_symbol_source if extended else None
 
   ### Make train data sampler ###
 
@@ -617,39 +653,11 @@ def run_with_opts(opts):
       print("Loaded in file:", eval_h5.keys())
       eval_h5.close()
 
-  eval_data_seeds = jax.random.split(eval_data_seed, len(opts.pe_names))
-  for i, name in enumerate(opts.pe_names):
+  for name in opts.pe_names:
     if name in eval_data:
       print("ERROR: Found overlapping name of new evaluator with old evaluator from file! Please rename new evaluator or stop using file.")
       pdb.set_trace()
-
-    assert name not in ['train', 'train_iter', 'eval_iter']
-
-    classes = splits['class'][opts.pe_classes[i]]
-    eval_class_sampler = partial(samplers.get_constant_burst_seq_idxs,
-                                  classes=classes,
-                                  class_distr=jnp.ones(len(classes))/len(classes),
-                                  num_seqs=opts.eval_iters,
-                                  context_len=smart_index(opts.pe_context_len, i, opts.train_context_len),
-                                  burstiness=opts.pe_burstiness[i],
-                                  distractor=smart_index(opts.pe_distract, i, 1),
-                                  no_support=smart_index(opts.pe_no_support, i, 0),
-                                  unique_rest=smart_index(opts.pe_unique_rest, i, 0),
-                                  next_symbol=next_symbol)
-    allowed_inds = splits['exemplar'][opts.pe_exemplars[i]]
-    eval_exemplar_sampler = partial(
-      samplers.get_exemplar_inds,
-      allowed_inds=allowed_inds,
-      match_query_and_distractors=opts.match_query_and_distractors)
-    eval_data_sampler = samplers.make_data_sampler(
-      eval_class_sampler,
-      eval_exemplar_sampler,
-      fs_relabel=splits['relabeling'][smart_index(opts.pe_fs_relabel_scheme, i, 'None')],
-      noise_scale=smart_index(opts.pe_noise_scale, i, opts.noise_scale_train),
-      assign_query_label_random=smart_index(opts.pe_assign_query_label_random, i, 0),
-      next_symbol=extended,
-      num_labels=opts.model_output_classes)
-    eval_data[name] = eval_data_sampler(eval_data_seeds[i], data)
+  eval_data.update(make_eval_data(opts, data, splits, eval_data_seed))
 
   if opts.save_eval_data is not None:
     fname = '/'.join([run_folder, opts.save_eval_data])
@@ -718,6 +726,17 @@ def run_with_opts(opts):
         model, opts, circuit_prompts, '/'.join([gen_folder, 'circuit']), data,
         splits['exemplar']['train'], opts.class_split[0], gen=g,
         h5_file='/'.join([run_folder, 'circuits.h5']))
+      if not opts.no_head_circuit:
+        # Causal tests of which heads talk to each other, on the same prompts (docs/head_circuit.md)
+        from src import head_circuit
+        from plotting.head_circuit_plots import plot_generations
+        h5_file = '/'.join([run_folder, 'head_circuit.h5'])
+        head_circuit.run_head_circuit(
+          model, opts, circuit_prompts, eval_data.get('fsl_test_class'), '/'.join([gen_folder, 'head_circuit']),
+          data, splits['exemplar']['train'], opts.class_split[0], gen=g, h5_file=h5_file)
+        if g > 0:
+          for target in ('value_exemplar_swap', 'value_label_swap'):
+            plot_generations(h5_file, '/'.join([run_folder, 'head_circuit']), target)
 
   if opts.gen_dataset_size is None:
     # Original setup: fresh training data every step, a single generation
