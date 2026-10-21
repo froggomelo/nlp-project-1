@@ -13,7 +13,7 @@
 \item {\bf Claims}
     \item[] Question: Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scope?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The abstract and introduction state the three main findings of this study, namely that the induction circuit degrades before accuracy once synthetic data carry errors, that the margin of each generation's model sets the error rate of the next generation's data, and that retaining real data delays rather than prevents collapse. Each claim is supported in the Results (Table~\ref{tab:summary}, Figure~\ref{fig:circuits}, and Equation~\ref{eq:error}), and the abstract states that errors were forced by raising the sampling temperature, so that the scope of the claims is clear.
+    \item[] Justification: The abstract states the three main findings of this study, and the introduction the question that they answer, namely that the induction circuit degrades before accuracy once synthetic data carry errors, that the margin of each generation's model sets the error rate of the next generation's data, and that retaining real data delays rather than prevents collapse. Each claim is supported in the Results (Table~\ref{tab:summary}, Figures~\ref{fig:circuits} and~\ref{fig:head}, and Equation~\ref{eq:error}), and the abstract states that errors were forced by raising the sampling temperature, so that the scope of the claims is clear.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the abstract and introduction do not include the claims made in the paper.
@@ -103,7 +103,7 @@
 \item {\bf Experiment Statistical Significance}
     \item[] Question: Does the paper report error bars suitably and correctly defined or other appropriate information about the statistical significance of the experiments?
     \item[] Answer: \answerNo{}
-    \item[] Justification: Each condition was run once from a fixed initialisation, so that conditions differ only in their training pool, and error bars are therefore not reported. As a reference for run-to-run variation, the Results report the range of the margin and circuit size over 20 generations of real-only retraining, and the fit of Equation~\ref{eq:error} is reported as a correlation and mean absolute error across every generation and condition.
+    \item[] Justification: Each condition was run once from a fixed initialisation, so that conditions differ only in their training pool, and error bars are therefore not reported. As a reference for change without synthetic data, Table~\ref{tab:summary} reports a real-only control retrained on real data for 20 generations, and the fit of Equation~\ref{eq:error} is reported as a correlation and an average absolute gap across every generation and condition.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include experiments.
@@ -120,7 +120,7 @@
 \item {\bf Experiments Compute Resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
     \item[] Answer: \answerYes{}
-    \item[] Justification: Every experiment was run on a single Mac. Training on one million sequences took approximately 2.2 minutes, so that the 580 trainings of the full run script take roughly a day, with circuit discovery and the longer eight-item contexts adding to this. Development runs not reported in this study used additional compute of a similar scale.
+    \item[] Justification: Every experiment was run on the CPU of a single desktop computer (AMD Ryzen 7 7800X3D, 32 GB of RAM). Training on one million sequences took approximately 2.2 minutes, so that the 580 trainings of the full run script take roughly a day, with circuit discovery and the longer eight-item contexts adding to this. Development runs not reported in this study used additional compute of a similar scale.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include experiments.
