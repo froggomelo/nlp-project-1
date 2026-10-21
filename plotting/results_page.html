@@ -1,0 +1,1000 @@
+<meta charset="utf-8">
+<title>Induction Under Collapse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: an instrument console. Slim header, one filter row that scopes everything,
+   then three stacked panels: across generations, training curves, circuit diagrams. */
+:root {
+  --bg: #f5f6f9;
+  --surface: #ffffff;
+  --ink: #15162b;
+  --ink-2: #4b4d64;
+  --muted: #7d7f96;
+  --line: #e1e2eb;
+  --axis: #c6c8d6;
+  --accent: #4338ca;
+  --accent-wash: rgba(67, 56, 202, 0.08);
+  --plate: #ffffff;
+  --shadow: 0 1px 2px rgba(21, 22, 43, 0.06), 0 0 0 1px rgba(21, 22, 43, 0.06);
+  /* conditions: categorical slots in fixed order */
+  --c-real_only: #2a78d6;
+  --c-replace50: #eb6834;
+  --c-replace90: #1baf7a;
+  --c-replace100: #eda100;
+  --c-accumulate: #e87ba4;
+  --c-base: #2a78d6;
+  --c-extended: #eb6834;
+  --e-train: #2a78d6;
+  --e-test: #eb6834;
+  --div-pos: #2a78d6;
+  --div-neg: #e34948;
+  --div-mid: #f0efec;
+  /* generations: ordinal blue ramp, later = more ink */
+  --g0: #86b6ef; --g1: #5598e7; --g2: #2a78d6; --g3: #256abf; --g4: #184f95; --g5: #0d366b;
+  --good: #0ca30c; --critical: #d03b3b; --warning: #b77900;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e0f17; --surface: #171826; --ink: #eef0fa; --ink-2: #b9bbd0; --muted: #82849c;
+    --line: #2a2c3d; --axis: #3a3c50; --accent: #8f88ff; --accent-wash: rgba(143, 136, 255, 0.12);
+    --plate: #ffffff; --shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+    --c-real_only: #3987e5; --c-replace50: #d95926; --c-replace90: #199e70; --c-replace100: #c98500; --c-accumulate: #d55181;
+    --c-base: #3987e5; --c-extended: #d95926;
+    --e-train: #3987e5; --e-test: #d95926; --div-pos: #3987e5; --div-neg: #e66767; --div-mid: #383835;
+    --g0: #184f95; --g1: #256abf; --g2: #3987e5; --g3: #6da7ec; --g4: #9ec5f4; --g5: #cde2fb;
+    --warning: #fab219;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e0f17; --surface: #171826; --ink: #eef0fa; --ink-2: #b9bbd0; --muted: #82849c;
+  --line: #2a2c3d; --axis: #3a3c50; --accent: #8f88ff; --accent-wash: rgba(143, 136, 255, 0.12);
+  --plate: #ffffff; --shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --c-real_only: #3987e5; --c-replace50: #d95926; --c-replace90: #199e70; --c-replace100: #c98500; --c-accumulate: #d55181;
+  --c-base: #3987e5; --c-extended: #d95926;
+  --e-train: #3987e5; --e-test: #d95926; --div-pos: #3987e5; --div-neg: #e66767; --div-mid: #383835;
+  --g0: #184f95; --g1: #256abf; --g2: #3987e5; --g3: #6da7ec; --g4: #9ec5f4; --g5: #cde2fb;
+  --warning: #fab219;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--font-body); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; display: grid; gap: 28px; }
+@media (max-width: 520px) { .wrap { padding-inline: 16px; } }
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.005em; }
+h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.1; }
+h2 { font-size: 22px; line-height: 1.2; }
+h3 { font-size: 15px; line-height: 1.3; font-family: var(--font-body); font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font: 500 11.5px/1.2 var(--font-data); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--ink-2); max-width: 68ch; }
+.mono { font-family: var(--font-data); font-size: 12.5px; }
+code { font-family: var(--font-data); font-size: 0.88em; background: var(--accent-wash); padding: 1px 5px; border-radius: 4px; }
+
+header.top { display: grid; gap: 12px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; color: var(--ink-2); font-size: 13px; }
+.meta b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.progress { display: flex; align-items: center; gap: 10px; }
+.bar { width: 160px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--font-data); padding: 5px 9px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.pill.ok::before { background: var(--good); }
+.pill.fail::before { background: var(--critical); }
+.pill.run::before { background: var(--warning); }
+
+/* filter row */
+.filters { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 10px; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button, .chip {
+  font: 500 13px/1 var(--font-body); color: var(--ink-2); background: transparent; border: 1px solid var(--line);
+  padding: 8px 11px; border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+}
+.seg button:hover, .chip:hover { background: var(--accent-wash); color: var(--ink); }
+.seg button[aria-pressed="true"], .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.seg button:disabled { opacity: 0.45; cursor: default; background: transparent; color: var(--muted); }
+.seg button .n { font: 500 11px/1 var(--font-data); opacity: 0.7; }
+.chip .key { width: 14px; height: 3px; border-radius: 2px; }
+button:focus-visible, select:focus-visible, .thumb:focus-visible, .plate:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+label.sel { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+select { font: 500 13px/1 var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px; }
+
+section.panel { display: grid; gap: 16px; }
+.panel-head { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: end; justify-content: space-between; }
+.panel-head > div { display: grid; gap: 4px; min-width: 0; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.group-label { font: 500 11.5px/1.2 var(--font-data); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 12px; }
+.grid.wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); }
+.card { background: var(--surface); border-radius: 10px; box-shadow: var(--shadow); padding: 14px 14px 10px; display: grid; gap: 6px; min-width: 0; position: relative; }
+.card-head { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+.card-head p { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.card-head > div { min-width: 0; }
+.tbtn { font: 500 11px/1 var(--font-data); color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; cursor: pointer; flex: none; }
+.tbtn:hover { color: var(--ink); }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart text { font-family: var(--font-data); font-size: 10.5px; fill: var(--muted); }
+.chart .grid-line { stroke: var(--line); stroke-width: 1; }
+.chart .base-line { stroke: var(--axis); stroke-width: 1; }
+.chart .xhair { stroke: var(--muted); stroke-width: 1; }
+.tip { position: absolute; z-index: 3; pointer-events: none; background: var(--surface); color: var(--ink); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.14), var(--shadow); padding: 8px 10px; font-size: 12px; min-width: 150px; display: grid; gap: 3px; }
+.tip .t { font: 500 11px/1.2 var(--font-data); color: var(--muted); margin-bottom: 2px; }
+.tip .r { display: grid; grid-template-columns: 12px auto 1fr; gap: 7px; align-items: center; }
+.tip .r i { width: 12px; height: 3px; border-radius: 2px; }
+.tip .r b { font: 600 12px/1.2 var(--font-data); font-variant-numeric: tabular-nums; }
+.tip .r span { color: var(--ink-2); }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+th, td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font: 500 11px/1.2 var(--font-data); color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+td { font-family: var(--font-data); }
+
+.empty { background: var(--surface); box-shadow: var(--shadow); border-radius: 10px; padding: 22px; color: var(--ink-2); display: grid; gap: 10px; }
+.runlist { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* circuits */
+.circuit { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .circuit { grid-template-columns: minmax(0, 1fr); } }
+.plate { background: var(--plate); border-radius: 10px; box-shadow: var(--shadow); padding: 8px; cursor: zoom-in; position: relative; }
+.sprite { width: 100%; max-width: 100%; background-repeat: no-repeat; border-radius: 4px; }
+.missing { display: grid; place-items: center; color: #6b6d84; font-size: 13px; aspect-ratio: 1200 / 780; max-width: 100%; }
+.side { display: grid; gap: 12px; min-width: 0; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
+.stat { background: var(--surface); padding: 10px 12px; display: grid; gap: 2px; }
+.stat .k { font-size: 12px; color: var(--muted); line-height: 1.3; }
+.stat .v { font: 600 20px/1.2 var(--font-display); }
+.stat .s { font: 400 11px/1.3 var(--font-data); color: var(--muted); }
+.strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.thumb { background: var(--plate); border-radius: 7px; padding: 4px; border: 2px solid transparent; cursor: pointer; display: grid; gap: 3px; box-shadow: var(--shadow); text-align: left; font: inherit; }
+.thumb[aria-pressed="true"] { border-color: var(--accent); }
+.thumb span { font: 500 11px/1.2 var(--font-data); color: #4b4d64; padding: 0 2px 2px; }
+.note { font-size: 12.5px; color: var(--muted); max-width: 80ch; }
+
+.lightbox { position: fixed; inset: 0; z-index: 20; background: rgba(8, 9, 16, 0.82); display: grid; place-items: center; padding: 24px 16px; }
+.lightbox .inner { width: min(1400px, 100%); max-height: 100%; overflow: auto; background: #fff; border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
+.lightbox .bar2 { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #15162b; font-size: 13px; }
+.lightbox button { font: 500 13px/1 var(--font-body); border: 1px solid #d5d6e0; background: #fff; color: #15162b; border-radius: 7px; padding: 7px 11px; cursor: pointer; }
+
+.figs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 16px; }
+.fig { margin: 0; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.fig.span { grid-column: 1 / -1; }
+.figplate { border: 0; width: 100%; display: block; }
+.figplate img { display: block; width: 100%; height: auto; }
+.fig figcaption { font-size: 13px; color: var(--ink-2); max-width: 75ch; }
+.fig figcaption b { color: var(--ink); font-weight: 600; }
+.pipeline { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+.pipeline .step { background: var(--surface); box-shadow: var(--shadow); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; min-width: 0; flex: 1 1 150px; }
+.pipeline .step b { font-weight: 600; font-size: 13.5px; }
+.pipeline .step span { font: 400 11.5px/1.35 var(--font-data); color: var(--muted); }
+.pipeline .step.learned { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.pipeline .arrow { align-self: center; color: var(--muted); font-family: var(--font-data); }
+.embed { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .embed { grid-template-columns: minmax(0, 1fr); } }
+.scatter { background: var(--surface); border-radius: 10px; box-shadow: var(--shadow); padding: 10px; position: relative; }
+.scatter svg { display: block; width: 100%; height: auto; touch-action: none; }
+.heat { display: grid; grid-template-columns: 22px repeat(5, 1fr); gap: 2px; font: 500 11px/1 var(--font-data); }
+.heat span { display: grid; place-items: center; aspect-ratio: 1.6; border-radius: 3px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.heat .h { color: var(--muted); aspect-ratio: auto; }
+.heat .light { color: #fff; }
+.hc-row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 900px) { .hc-row { grid-template-columns: minmax(0, 1fr); } }
+.hg svg { display: block; width: 100%; height: auto; }
+.hg-node { font: 500 10.5px var(--font-data); fill: var(--ink); }
+.hg-node.light { fill: #fff; }
+.hg-role { font: 700 12px var(--font-display); fill: var(--accent); }
+.hg-col { font: 500 10.5px var(--font-data); fill: var(--muted); letter-spacing: 0.04em; }
+.heat9 { grid-template-columns: 46px repeat(8, 1fr); }
+.heat9 span { aspect-ratio: 1.25; font-size: 10.5px; }
+.hb { display: flex; align-items: center; gap: 8px; min-width: 130px; }
+.hb-track { position: relative; flex: 1; height: 8px; border-radius: 4px; background: var(--line); }
+.hb-track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+.hb-mark { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: 0.55; }
+.hb-v { font: 500 11.5px var(--font-data); width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+.hc-table td, .hc-table th { text-align: left; }
+.hc-table tr.sel td { background: var(--accent-wash); }
+.stats .stat .v { overflow-wrap: anywhere; }
+footer { color: var(--muted); font-size: 12.5px; display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 16px; }
+@media (prefers-reduced-motion: no-preference) { .card, .plate { transition: box-shadow 0.15s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">NLP project · scripts/nlp_project_run.sh</span>
+    <h1>Induction Under Collapse</h1>
+    <p class="lede">Results from every experiment in the run script: how in-context learning accuracy, the training pool, and the discovered induction circuits change when each generation trains on data produced by the previous one.</p>
+    <div class="meta" id="meta"><span>Loading results…</span></div>
+  </header>
+
+  <nav class="filters" aria-label="Filters">
+    <div class="seg" id="suites" role="group" aria-label="Suite"></div>
+    <div class="seg" id="variants" role="group" aria-label="Model variant"></div>
+  </nav>
+
+  <main id="main" style="display:grid;gap:40px"></main>
+
+  <footer>
+    <p>Accuracy is the mean over 1,000 evaluation sequences. Circuit metrics use 512 fixed real prompts per generation; the ACDC circuit is reported at τ = 0.001. A recovery above 100% means the circuit's logit difference exceeds the full model's.</p>
+    <p id="gen-note"></p>
+  </footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(function () {
+'use strict';
+const COND = { real_only: 'Real only', replace50: 'Replace 50%', replace90: 'Replace 90%', replace100: 'Replace 100%', accumulate: 'Accumulate' };
+const COND_ORDER = Object.keys(COND);
+const SETS = { fsl_train: 'Train classes', fsl_val_rl: 'Train classes, val labels', fsl_train_valex: 'Held-out exemplars', fsl_test_class: 'Held-out classes' };
+const METRICS = { acc: 'Accuracy', in_context_acc: 'In-context accuracy', loss: 'Loss', symbol_acc: 'Next-symbol accuracy', next_value_acc: 'Next-value accuracy', loss_total: 'Total loss' };
+const TARGETS = { value_exemplar_swap: 'Value · exemplar swap', value_label_swap: 'Value · label swap', next_symbol: 'Next symbol' };
+const TARGET_NOTE = {
+  value_exemplar_swap: 'Where the query finds the matching symbol: previous-token to induction routes through Q and K.',
+  value_label_swap: 'What label content the induction head copies, mostly through V inputs.',
+  next_symbol: 'How the extended model picks the next symbol from its context.'
+};
+const S = { snap: null, suite: 'main', variant: 'base', cond: null, set: 'fsl_test_class', metric: 'acc', target: 'value_exemplar_swap', method: 'eap', view: 'component', gen: 0 };
+let D = null;
+const tip = document.getElementById('tip');
+
+const el = (tag, attrs, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') n.className = v; else if (k === 'text') n.textContent = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat()) if (c != null) n.append(c.nodeType ? c : document.createTextNode(c));
+  return n;
+};
+const svgEl = (tag, attrs) => { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v); return n; };
+const pct = v => v == null ? '–' : (v * 100).toFixed(v >= 0.995 || v < 0.1 ? 1 : 0) + '%';
+const num = v => v == null ? '–' : Number.isInteger(v) ? v.toLocaleString() : Math.abs(v) < 0.1 ? String(parseFloat(v.toPrecision(2))) : Math.abs(v) >= 100 ? Math.round(v).toLocaleString() : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2);
+const seqs = v => v >= 1e6 ? (v / 1e6).toFixed(v % 1e6 ? 1 : 0) + 'M' : v >= 1e3 ? Math.round(v / 1e3) + 'k' : String(v);
+
+function niceTicks(lo, hi, n) {
+  if (hi === lo) { hi = lo + 1; }
+  const step0 = (hi - lo) / Math.max(1, n);
+  const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0);
+  const t = [];
+  const end = Math.ceil(hi / step - 1e-9) * step;
+  for (let v = Math.floor(lo / step) * step; v <= end + step * 1e-9; v += step) t.push(+v.toFixed(10));
+  return t;
+}
+
+/* Line chart: series [{label, color, points:[[x,y]]}]. One crosshair tooltip lists every series. */
+function lineChart(host, o) {
+  const box = el('div', { class: 'chart' });
+  host.append(box);
+  const draw = () => {
+    box.textContent = '';
+    const W = Math.max(240, box.clientWidth), H = o.height || 190;
+    const m = { l: 40, r: 12, t: 8, b: 26 };
+    const pts = o.series.flatMap(s => s.points).filter(p => p[1] != null);
+    if (!pts.length) { box.append(el('p', { class: 'note', text: 'No values yet.' })); return; }
+    let x0 = o.xMin ?? Math.min(...pts.map(p => p[0])), x1 = o.xMax ?? Math.max(...pts.map(p => p[0]));
+    if (x0 === x1) { x0 -= 0.5; x1 += 0.5; }
+    let y0 = Math.min(...pts.map(p => p[1])), y1 = Math.max(...pts.map(p => p[1]));
+    if (o.yMin != null) y0 = Math.min(y0, o.yMin);
+    if (o.yMax != null) y1 = Math.max(y1, o.yMax);
+    if (y0 > 0 && !o.tight) y0 = 0;
+    const yt = niceTicks(y0, y1, 4); y0 = yt[0]; y1 = yt[yt.length - 1];
+    const X = x => m.l + (x - x0) / (x1 - x0) * (W - m.l - m.r);
+    const Y = y => m.t + (1 - (y - y0) / (y1 - y0)) * (H - m.t - m.b);
+    const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img', 'aria-label': o.label || 'chart' });
+    yt.forEach(v => {
+      svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: v === y0 ? 'base-line' : 'grid-line' }));
+      const t = svgEl('text', { x: m.l - 6, y: Y(v) + 3.5, 'text-anchor': 'end' }); t.textContent = o.yFmt ? o.yFmt(v) : v; svg.append(t);
+    });
+    const xs = o.xTicks || niceTicks(x0, x1, Math.max(2, Math.floor((W - m.l) / 80)));
+    xs.filter(v => v >= x0 - 1e-9 && v <= x1 + 1e-9).forEach(v => {
+      const t = svgEl('text', { x: X(v), y: H - 8, 'text-anchor': 'middle' }); t.textContent = o.xFmt ? o.xFmt(v) : v; svg.append(t);
+    });
+    o.series.forEach(s => {
+      const p = s.points.filter(q => q[1] != null);
+      if (!p.length) return;
+      const w = s.width || 2;
+      if (p.length > 1) svg.append(svgEl('path', { d: p.map((q, i) => (i ? 'L' : 'M') + X(q[0]).toFixed(1) + ',' + Y(q[1]).toFixed(1)).join(''), fill: 'none', style: `stroke:${s.color};stroke-width:${w};stroke-linejoin:round;stroke-linecap:round;opacity:${s.dim ? 0.35 : 1}` }));
+      if (o.markers || p.length === 1) p.forEach(q => svg.append(svgEl('circle', { cx: X(q[0]), cy: Y(q[1]), r: 4, style: `fill:${s.color};stroke:var(--surface);stroke-width:2;opacity:${s.dim ? 0.35 : 1}` })));
+    });
+    const xh = svgEl('line', { y1: m.t, y2: H - m.b, class: 'xhair', visibility: 'hidden' });
+    svg.append(xh);
+    const allX = [...new Set(pts.map(p => p[0]))].sort((a, b) => a - b);
+    const hit = svgEl('rect', { x: m.l, y: 0, width: W - m.l - m.r, height: H, fill: 'transparent', tabindex: 0 });
+    let fi = -1;
+    const show = (xv, cx, cy) => {
+      xh.setAttribute('x1', X(xv)); xh.setAttribute('x2', X(xv)); xh.setAttribute('visibility', 'visible');
+      tip.textContent = '';
+      tip.append(el('div', { class: 't', text: o.xName ? o.xName(xv) : String(xv) }));
+      o.series.forEach(s => {
+        const q = s.points.find(p => p[0] === xv);
+        if (!q || q[1] == null) return;
+        tip.append(el('div', { class: 'r' }, el('i', { style: `background:${s.color}` }), el('b', { text: (o.tipFmt || o.yFmt || num)(q[1]) }), el('span', { text: s.label })));
+      });
+      tip.hidden = false;
+      const r = tip.getBoundingClientRect();
+      let left = cx + 14, top = cy + 14;
+      if (left + r.width > window.innerWidth - 8) left = cx - r.width - 14;
+      if (top + r.height > window.innerHeight - 8) top = cy - r.height - 14;
+      tip.style.left = (left + window.scrollX) + 'px'; tip.style.top = (top + window.scrollY) + 'px';
+    };
+    const hide = () => { xh.setAttribute('visibility', 'hidden'); tip.hidden = true; };
+    const nearest = px => allX.reduce((b, v) => Math.abs(X(v) - px) < Math.abs(X(b) - px) ? v : b, allX[0]);
+    hit.addEventListener('pointermove', e => { const r = svg.getBoundingClientRect(); show(nearest((e.clientX - r.left) * W / r.width), e.clientX, e.clientY); });
+    hit.addEventListener('pointerleave', hide);
+    hit.addEventListener('blur', hide);
+    hit.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault(); fi = Math.max(0, Math.min(allX.length - 1, fi + (e.key === 'ArrowRight' ? 1 : -1)));
+      const r = svg.getBoundingClientRect(); show(allX[fi], r.left + X(allX[fi]) * r.width / W, r.top + 20);
+    });
+    svg.append(hit);
+    box.append(svg);
+  };
+  draw();
+  let last = box.clientWidth;
+  new ResizeObserver(() => { if (Math.abs(box.clientWidth - last) > 4) { last = box.clientWidth; draw(); } }).observe(box);
+}
+
+function table(cols, rows) {
+  return el('div', { class: 'tablewrap' }, el('table', {},
+    el('thead', {}, el('tr', {}, cols.map(c => el('th', { text: c })))),
+    el('tbody', {}, rows.map(r => el('tr', {}, r.map(c => el('td', { text: c })))))));
+}
+
+/* A card holding a chart and, behind a toggle, the same values as a table. */
+function chartCard(title, sub, chartOpts, tableFn) {
+  const body = el('div');
+  let asTable = false;
+  const btn = el('button', { class: 'tbtn', type: 'button', 'aria-pressed': 'false', text: 'Table' });
+  const render = () => { body.textContent = ''; if (asTable) body.append(tableFn()); else lineChart(body, chartOpts); };
+  btn.addEventListener('click', () => { asTable = !asTable; btn.setAttribute('aria-pressed', String(asTable)); btn.textContent = asTable ? 'Chart' : 'Table'; render(); });
+  const card = el('div', { class: 'card' }, el('div', { class: 'card-head' }, el('div', {}, el('h3', { text: title }), sub ? el('p', { text: sub }) : null), btn), body);
+  requestAnimationFrame(render);
+  return card;
+}
+
+const runsOf = (suite, variant) => Object.values(D.runs).filter(r => r.suite === suite && r.variant === variant)
+  .sort((a, b) => COND_ORDER.indexOf(a.condition) - COND_ORDER.indexOf(b.condition));
+const currentRun = () => S.suite === 'single' ? D.runs[S.variant] : D.runs[`collapse_${S.variant}_${S.suite === 'main' ? '' : S.suite + '_'}${S.cond}`];
+const genLabel = (run, g) => run.suite === 'single' ? 'Final model' : `Gen ${g}`;
+const gcol = g => `var(--g${Math.min(5, g)})`;
+
+/* ---------- header and filters ---------- */
+function renderMeta() {
+  const meta = document.getElementById('meta');
+  const runs = Object.values(D.runs);
+  const expectedTrainings = Object.values(D.expected).reduce((a, e) => a + (e.suite === 'single' ? 1 : 6), 0);
+  const trainings = runs.reduce((a, r) => a + r.gens.length, 0);
+  const done = runs.filter(r => r.complete).length;
+  const failed = Object.values(D.status).filter(s => s === 'FAILED').length;
+  const finished = done === Object.keys(D.expected).length;
+  meta.textContent = '';
+  meta.append(
+    el('span', { class: 'progress' }, el('span', { class: 'bar' }, el('i', { style: `width:${(trainings / expectedTrainings * 100).toFixed(1)}%` })),
+      el('span', {}, el('b', { text: trainings.toLocaleString() }), ` of ${expectedTrainings} trainings`)),
+    el('span', {}, el('b', { text: String(done) }), ` of ${Object.keys(D.expected).length} experiments complete`),
+    el('span', { class: 'pill ' + (failed ? 'fail' : finished ? 'ok' : 'run'), text: failed ? `${failed} failed` : finished ? 'Run finished' : 'Run in progress' }),
+    el('span', { class: 'mono', text: 'Built ' + D.generated.replace('T', ' ') }));
+}
+
+function renderFilters() {
+  const s = document.getElementById('suites'); s.textContent = '';
+  D.suites.forEach(su => {
+    const n = Object.values(D.runs).filter(r => r.suite === su.id).length;
+    const total = Object.values(D.expected).filter(e => e.suite === su.id).length;
+    s.append(el('button', { type: 'button', 'aria-pressed': String(S.suite === su.id), title: su.note, onclick: () => { S.suite = su.id; S.snap = null; S.cond = null; S.gen = 0; render(); } },
+      su.label, el('span', { class: 'n', text: n < total ? `${n}/${total}` : '' })));
+  });
+  const v = document.getElementById('variants'); v.textContent = '';
+  ['base', 'extended'].forEach(x => v.append(el('button', { type: 'button', 'aria-pressed': String(S.variant === x), onclick: () => { S.variant = x; S.snap = null; S.gen = 0; if (x === 'base' && S.target === 'next_symbol') S.target = 'value_exemplar_swap'; render(); } }, x === 'base' ? 'Base model' : 'Extended model')));
+}
+
+/* ---------- panel 1: across generations ---------- */
+function acrossGenerations(main) {
+  const runs = runsOf(S.suite, S.variant);
+  const su = D.suites.find(x => x.id === S.suite);
+  const sec = el('section', { class: 'panel' });
+  sec.append(el('div', { class: 'panel-head' }, el('div', {}, el('span', { class: 'eyebrow', text: su.label + ' · ' + (S.variant === 'base' ? 'base model' : 'extended model') }), el('h2', { text: 'Across generations' }),
+    el('p', { class: 'lede', text: su.note + ' Each line is one pool condition; generation 0 always trains on real data.' }))));
+  const legend = el('div', { class: 'legend' }, runs.map(r => el('span', {}, el('i', { style: `background:var(--c-${r.condition})` }), COND[r.condition] + (r.complete ? '' : ` (${r.gens.length}/${r.expected_gens})`))));
+  sec.append(legend);
+  const gens = [0, 1, 2, 3, 4, 5];
+  const series = get => runs.map(r => ({ label: COND[r.condition], color: `var(--c-${r.condition})`, points: r.gens.map(g => [g.gen, get(g)]) }));
+  const tbl = (get, fmt) => () => table(['Condition', ...gens.map(g => 'Gen ' + g)], runs.map(r => [COND[r.condition], ...gens.map(g => { const e = r.gens.find(x => x.gen === g); return e ? fmt(get(e)) : ''; })]));
+  const card = (title, sub, get, fmt, extra) => chartCard(title, sub, Object.assign({ series: series(get), xMin: 0, xMax: 5, xTicks: gens, xName: g => 'Generation ' + g, yFmt: fmt, markers: true, label: title }, extra), tbl(get, fmt));
+  const acc = (set, m) => g => g.final[set] && g.final[set][m] != null ? g.final[set][m] : null;
+  const pool = k => g => g.pool[k] != null ? g.pool[k] : null;
+  const accOpts = { yMin: 0, yMax: 1, yFmt: v => Math.round(v * 100) + '%', tipFmt: pct };
+
+  sec.append(el('div', { class: 'group-label', text: 'Model accuracy at the end of each generation' }));
+  const g1 = el('div', { class: 'grid' });
+  g1.append(card('Held-out classes', 'Unseen symbols, so the answer must come from context.', acc('fsl_test_class', 'acc'), pct, accOpts));
+  g1.append(card('Train classes', 'Symbols seen in training.', acc('fsl_train', 'acc'), pct, accOpts));
+  g1.append(card('Held-out exemplars', 'Train classes, unseen drawings.', acc('fsl_train_valex', 'acc'), pct, accOpts));
+  if (S.variant === 'extended') {
+    g1.append(card('Next-symbol accuracy', 'Train classes, teacher-forced.', acc('fsl_train', 'symbol_acc'), pct, accOpts));
+    g1.append(card('Next-value accuracy', 'Train classes, teacher-forced.', acc('fsl_train', 'next_value_acc'), pct, accOpts));
+  }
+  sec.append(g1);
+
+  sec.append(el('div', { class: 'group-label', text: 'Loss at the end of each generation' }));
+  const gl = el('div', { class: 'grid' });
+  const lastLoss = g => g.train.loss.length ? g.train.loss.at(-1) : null;
+  gl.append(card('Training loss', 'On the generation\'s own pool, last window of training.', lastLoss, num, { yMin: 0 }));
+  gl.append(card('Eval loss · held-out classes', 'Cross-entropy of the value prediction.', acc('fsl_test_class', 'loss'), num, { yMin: 0 }));
+  gl.append(card('Eval loss · train classes', 'Cross-entropy of the value prediction.', acc('fsl_train', 'loss'), num, { yMin: 0 }));
+  if (S.variant === 'extended') gl.append(card('Eval total loss · train classes', 'Mean of value, next-symbol and next-value losses.', acc('fsl_train', 'loss_total'), num, { yMin: 0 }));
+  sec.append(gl);
+
+  const emb = (split, k) => g => { const r = runs.find(x => x.gens.includes(g)); const sn = r && r.embeddings && r.embeddings.snapshots.find(s => s.gen === g.gen); return sn ? sn.metrics[split][k] : null; };
+  sec.append(el('div', { class: 'group-label', text: 'Symbol embeddings' }));
+  const ge = el('div', { class: 'grid' });
+  ge.append(card('Matching · held-out classes', 'One-shot matching of unseen drawings in the learned embedding.', emb('test', 'match'), pct, { yMin: 0, yFmt: v => Math.round(v * 100) + '%', tipFmt: pct }));
+  ge.append(card('Matching · train classes', 'Same, for the 50 train classes.', emb('train', 'match'), pct, { yMin: 0, yFmt: v => Math.round(v * 100) + '%', tipFmt: pct }));
+  ge.append(card('Effective dimensions', 'Participation ratio of embedded train-class drawings.', emb('train', 'dim'), num, { yMin: 0 }));
+  sec.append(ge);
+
+  sec.append(el('div', { class: 'group-label', text: 'Training pool' }));
+  const g2 = el('div', { class: 'grid' });
+  g2.append(card('Real share of pool', 'Fraction of the pool that is real data.', pool('real_frac'), pct, accOpts));
+  g2.append(card('Query label error', 'Share of pool items whose query label is wrong.', pool('query_label_err'), pct, { yMin: 0, yFmt: v => Math.round(v * 100) + '%', tipFmt: pct }));
+  if (S.variant === 'extended') {
+    g2.append(card('Next-symbol entropy', 'Entropy of the generated next symbol, in nats.', pool('next_symbol_entropy'), num));
+    g2.append(card('KL to generation 0', 'Next-symbol distribution drift from real data.', pool('next_symbol_kl_to_gen0'), num));
+    g2.append(card('Distinct next symbols', 'Number of different symbols in the pool.', pool('next_symbol_n_unique'), num));
+    g2.append(card('Off-context next symbols', 'Next symbols that are not in the context.', pool('next_offcontext_rate'), pct, { yMin: 0, yFmt: v => Math.round(v * 100) + '%', tipFmt: pct }));
+  }
+  sec.append(g2);
+
+  const targets = S.variant === 'extended' ? Object.keys(TARGETS) : Object.keys(TARGETS).slice(0, 2);
+  const head = el('div', { class: 'controls' }, el('div', { class: 'group-label', text: 'Circuits' }),
+    el('div', { class: 'seg', role: 'group', 'aria-label': 'Circuit target' }, targets.map(t => el('button', { type: 'button', 'aria-pressed': String(S.target === t), onclick: () => { S.target = t; render(); } }, TARGETS[t]))));
+  sec.append(head);
+  sec.append(el('p', { class: 'note', text: TARGET_NOTE[S.target] }));
+  const c = k => g => g.circuits[S.target] ? k(g.circuits[S.target]) : null;
+  const g3 = el('div', { class: 'grid' });
+  g3.append(card('Edges to 80% recovery', 'Edge attribution patching, smallest tested circuit (of 257 edges).', c(x => x.eap.n_edges_to_recover), num, { yMin: 0 }));
+  g3.append(card('ACDC circuit size', 'Edges kept at τ = 0.001.', c(x => x.acdc ? x.acdc.n_edges : null), num, { yMin: 0 }));
+  g3.append(card('ACDC recovery', 'Held-out share of the logit difference restored.', c(x => x.acdc ? x.acdc.recovery : null), pct, { yMin: 0, yMax: 1, yFmt: v => Math.round(v * 100) + '%', tipFmt: pct }));
+  g3.append(card('Full-model logit difference', 'Correct minus wrong answer logit on clean prompts.', c(x => x.eap.logit_diff_full), num, { tight: false }));
+  sec.append(g3);
+
+  const h = k => g => { const x = g.head_circuit && g.head_circuit[S.target]; return x ? k(x) : null; };
+  if (runs.some(r => r.gens.some(g => g.head_circuit && g.head_circuit[S.target]))) {
+    sec.append(el('div', { class: 'group-label', text: 'Which heads talk to each other' }));
+    sec.append(el('p', { class: 'note', text: 'P (strongest previous-token head) and I (strongest induction head) are found again in every generation. The P → I key edge is the canonical induction connection.' }));
+    const g4 = el('div', { class: 'grid' });
+    const pcts = { yMin: 0, yFmt: v => Math.round(v * 100) + '%', tipFmt: share };
+    g4.append(card('Disrupting P → I.K', 'Share of the gap lost when only this edge is corrupted.', h(x => x.connections[0] && x.connections[0].receiver === x.I ? x.connections[0].channels.K.disrupt : null), share, pcts));
+    g4.append(card('Restoring P → I.K', 'Share of the damage undone by keeping only this edge clean in I\'s corrupted key input.', h(x => x.connections[0] && x.connections[0].receiver === x.I ? x.connections[0].channels.K.restore : null), share, pcts));
+    g4.append(card('Induction-head circuit R', 'Previous-token heads → induction heads; 80% is the target.', h(x => (x.circuits.induction_heads || {}).R ?? null), share, Object.assign({}, pcts, { yMax: 1 })));
+    g4.append(card('Induction-head circuit accuracy', 'Held-out classes, with only the circuit clean.', h(x => (x.circuits.induction_heads || {}).eval_acc ?? null), pct, { yMin: 0, yMax: 1, yFmt: v => Math.round(v * 100) + '%', tipFmt: pct }));
+    g4.append(card('Induction score of I', 'Attention from the query to the matching label minus the other label.', h(x => x.ind ? Math.max(...x.ind) : null), num, { yMin: 0, yMax: 1 }));
+    sec.append(g4);
+  }
+  main.append(sec);
+}
+
+function singleOverview(main) {
+  const runs = ['base', 'extended'].map(v => D.runs[v]).filter(Boolean);
+  const sec = el('section', { class: 'panel' });
+  sec.append(el('div', { class: 'panel-head' }, el('div', {}, el('span', { class: 'eyebrow', text: 'Single runs · base and extended' }), el('h2', { text: 'Training on fresh data' }),
+    el('p', { class: 'lede', text: 'One generation of 1,000,000 sequences, each step drawn from the real data. Both variants on the same axes.' }))));
+  sec.append(el('div', { class: 'legend' }, runs.map(r => el('span', {}, el('i', { style: `background:var(--c-${r.variant})` }), r.variant === 'base' ? 'Base model' : 'Extended model'))));
+  const grid = el('div', { class: 'grid' });
+  Object.entries(SETS).forEach(([set, name]) => {
+    const series = runs.map(r => { const g = r.gens[0]; return { label: r.variant, color: `var(--c-${r.variant})`, points: (g.curves[set] && g.curves[set].acc || []).map((y, i) => [g.curves.iter[i], y]) }; });
+    grid.append(chartCard(name, 'Accuracy over training.', { series, yMin: 0, yMax: 1, yFmt: v => Math.round(v * 100) + '%', tipFmt: pct, xFmt: seqs, xName: v => seqs(v) + ' sequences', label: name },
+      () => table(['Model', 'Final accuracy', 'Final in-context accuracy'], runs.map(r => [r.variant, pct(r.gens[0].final[set].acc), pct(r.gens[0].final[set].in_context_acc)]))));
+  });
+  const el_ = runs.map(r => { const g = r.gens[0]; return { label: r.variant, color: `var(--c-${r.variant})`, points: ((g.curves.fsl_test_class || {}).loss || []).map((y, i) => [g.curves.iter[i], y]) }; });
+  grid.append(chartCard('Eval loss · held-out classes', 'Cross-entropy of the value prediction.', { series: el_, yMin: 0, xFmt: seqs, xName: v => seqs(v) + ' sequences', label: 'Eval loss' },
+    () => table(['Model', 'Final loss'], runs.map(r => [r.variant, num(r.gens[0].final.fsl_test_class.loss)]))));
+  const ls = runs.map(r => ({ label: r.variant, color: `var(--c-${r.variant})`, points: r.gens[0].train.iter.map((x, i) => [x, r.gens[0].train.loss[i]]) }));
+  grid.append(chartCard('Training loss', 'Mean over windows of 1/150 of training.', { series: ls, xFmt: seqs, xName: v => seqs(v) + ' sequences', label: 'Training loss' },
+    () => table(['Model', 'Final loss'], runs.map(r => [r.variant, num(r.gens[0].train.loss.at(-1))]))));
+  sec.append(grid);
+  main.append(sec);
+}
+
+/* ---------- panel 2: training curves ---------- */
+function runPicker(runs) {
+  return el('div', { class: 'seg', role: 'group', 'aria-label': 'Run' }, runs.map(r => el('button', { type: 'button', 'aria-pressed': String(S.cond === r.condition), onclick: () => { S.cond = r.condition; S.snap = null; S.gen = Math.min(S.gen, r.gens.at(-1).gen); render(); } },
+    el('span', { class: 'key', style: `background:var(--c-${r.condition});width:14px;height:3px;border-radius:2px;display:inline-block` }), COND[r.condition])));
+}
+
+function trainingCurves(main, run) {
+  const sec = el('section', { class: 'panel' });
+  const ext = run.variant === 'extended';
+  const metricKeys = ['acc', 'in_context_acc'].concat(ext ? ['symbol_acc', 'next_value_acc'] : []);
+  if (!metricKeys.includes(S.metric)) S.metric = 'acc';
+  const setSel = el('select', { id: 'set-select', onchange: e => { S.set = e.target.value; render(); } }, Object.entries(SETS).map(([k, v]) => el('option', { value: k, selected: S.set === k }, v)));
+  const metSel = el('select', { id: 'metric-select', onchange: e => { S.metric = e.target.value; render(); } }, metricKeys.map(k => el('option', { value: k, selected: S.metric === k }, METRICS[k])));
+  sec.append(el('div', { class: 'panel-head' },
+    el('div', {}, el('span', { class: 'eyebrow', text: run.name }), el('h2', { text: run.suite === 'single' ? 'Training curves' : 'Training curves by generation' })),
+    el('div', { class: 'controls' }, el('label', { class: 'sel', for: 'set-select' }, 'Eval set', setSel), el('label', { class: 'sel', for: 'metric-select' }, 'Metric', metSel))));
+  if (run.suite !== 'single') sec.append(el('div', { class: 'legend' }, run.gens.map(g => el('span', {}, el('i', { style: `background:${gcol(g.gen)}` }), 'Gen ' + g.gen))));
+  const isAcc = true;
+  const grid = el('div', { class: 'grid' });
+  const series = run.gens.map(g => ({ label: genLabel(run, g.gen), color: gcol(g.gen), points: ((g.curves[S.set] || {})[S.metric] || []).map((y, i) => [g.curves.iter[i], y]) }));
+  const fmt = isAcc ? pct : num;
+  grid.append(chartCard(`${METRICS[S.metric]} · ${SETS[S.set]}`, 'Evaluated every 5,000 sequences on 1,000 sequences.', { series, xFmt: seqs, xName: v => seqs(v) + ' sequences', yMin: isAcc ? 0 : null, yMax: isAcc ? 1 : null, yFmt: isAcc ? v => Math.round(v * 100) + '%' : null, tipFmt: fmt, label: METRICS[S.metric] },
+    () => table(['Generation', 'Final value'], run.gens.map(g => ['Gen ' + g.gen, fmt(((g.final[S.set] || {})[S.metric]))]))));
+  const lossKeys = ['loss'].concat(ext ? ['loss_total'] : []);
+  lossKeys.forEach(k => {
+    const es = run.gens.map(g => ({ label: genLabel(run, g.gen), color: gcol(g.gen), points: ((g.curves[S.set] || {})[k] || []).map((y, i) => [g.curves.iter[i], y]) }));
+    grid.append(chartCard(`${k === 'loss' ? 'Eval loss' : 'Eval total loss'} · ${SETS[S.set]}`, k === 'loss' ? 'Cross-entropy of the value prediction.' : 'Mean of value, next-symbol and next-value losses.',
+      { series: es, xFmt: seqs, xName: v => seqs(v) + ' sequences', yMin: 0, label: 'Eval loss' },
+      () => table(['Generation', 'Final loss'], run.gens.map(g => [genLabel(run, g.gen), num((g.final[S.set] || {})[k])]))));
+  });
+  const ls = run.gens.map(g => ({ label: genLabel(run, g.gen), color: gcol(g.gen), points: g.train.iter.map((x, i) => [x, g.train.loss[i]]) }));
+  grid.append(chartCard('Training loss', 'On the training data, mean over windows of 1/150 of training.', { series: ls, xFmt: seqs, xName: v => seqs(v) + ' sequences', label: 'Training loss' },
+    () => table(['Generation', 'Final loss'], run.gens.map(g => ['Gen ' + g.gen, num(g.train.loss.at(-1))]))));
+  sec.append(grid);
+  main.append(sec);
+}
+
+/* ---------- panel 3: circuit diagrams ---------- */
+function spriteBox(sp, row, col) {
+  const have = sp.have.some(h => h[0] === row && h[1] === col);
+  if (!have) return el('div', { class: 'missing', text: 'No diagram for this combination.' });
+  const rows = sp.rows.length, cols = sp.cols.length;
+  return el('div', { class: 'sprite', role: 'img', 'aria-label': 'Circuit diagram', style: `aspect-ratio:${sp.cell[0]}/${sp.cell[1]};background-image:url('${sp.file}');background-size:${cols * 100}% ${rows * 100}%;background-position:${cols > 1 ? col / (cols - 1) * 100 : 0}% ${rows > 1 ? row / (rows - 1) * 100 : 0}%` });
+}
+
+function circuits(main, run) {
+  const sec = el('section', { class: 'panel' });
+  const targets = run.targets;
+  if (!targets.includes(S.target)) S.target = targets[0];
+  const views = Object.keys(run.sprites);
+  if (!views.includes(S.view)) S.view = views[0];
+  const gens = run.gens.map(g => g.gen);
+  if (!gens.includes(S.gen)) S.gen = gens[0];
+  const ge = run.gens.find(g => g.gen === S.gen);
+  const ci = ge.circuits[S.target] || {};
+
+  sec.append(el('div', { class: 'panel-head' }, el('div', {}, el('span', { class: 'eyebrow', text: run.name }), el('h2', { text: 'Circuit diagrams' }),
+    el('p', { class: 'lede', text: 'The circuit each generation\'s model uses, found on the same real prompts every generation. Click a diagram to enlarge it.' }))));
+  const seg = (label, items, key, names) => el('div', { class: 'seg', role: 'group', 'aria-label': label }, items.map(k => el('button', { type: 'button', 'aria-pressed': String(S[key] === k), onclick: () => { S[key] = k; render(); } }, names[k])));
+  sec.append(el('div', { class: 'controls' },
+    seg('Circuit target', targets, 'target', TARGETS),
+    seg('Method', ['eap', 'acdc'], 'method', { eap: 'Edge attribution', acdc: 'ACDC' }),
+    views.length > 1 ? seg('View', views, 'view', { component: 'Component view', sankey: 'Flow view' }) : null,
+    run.suite === 'single' ? null : seg('Generation', gens, 'gen', Object.fromEntries(gens.map(g => [g, 'Gen ' + g])))));
+
+  const sp = run.sprites[S.view];
+  const col = sp ? sp.cols.findIndex(c => c[0] === S.target && c[1] === S.method) : -1;
+  const row = sp ? sp.rows.indexOf(S.gen) : -1;
+  const plate = el('div', { class: 'plate', tabindex: 0, role: 'button', 'aria-label': 'Enlarge diagram' }, sp && col >= 0 && row >= 0 ? spriteBox(sp, row, col) : el('div', { class: 'missing', text: 'No diagram for this combination.' }));
+  const open = () => lightbox(run, sp, row, col);
+  plate.addEventListener('click', open);
+  plate.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+
+  const stat = (k, v, s) => el('div', { class: 'stat' }, el('span', { class: 'k', text: k }), el('span', { class: 'v', text: v }), s ? el('span', { class: 's', text: s }) : null);
+  const stats = el('div', { class: 'stats' },
+    stat('Edges to 80% recovery', ci.eap ? num(ci.eap.n_edges_to_recover) : '–', 'edge attribution'),
+    stat('ACDC edges', ci.acdc ? num(ci.acdc.n_edges) : '–', ci.acdc ? 'τ = ' + ci.acdc.threshold : ''),
+    stat('ACDC recovery', ci.acdc ? pct(ci.acdc.recovery) : '–', 'held-out prompts'),
+    stat('Logit difference', ci.eap ? num(ci.eap.logit_diff_full) : '–', ci.eap ? 'ablated ' + num(ci.eap.logit_diff_ablated) : ''));
+
+  const side = el('div', { class: 'side' }, stats);
+  const curves = run.gens.filter(g => g.circuits[S.target]);
+  const recSeries = curves.map(g => ({ label: genLabel(run, g.gen), color: gcol(g.gen), width: g.gen === S.gen ? 3 : 1.5, dim: g.gen !== S.gen && run.suite !== 'single', points: g.circuits[S.target].eap.curve.filter(p => p[0] <= 100) }));
+  side.append(chartCard('Recovery by edges kept', 'Edge attribution, top-k edges clean, up to 100.', { series: recSeries, height: 160, yFmt: v => Math.round(v * 100) + '%', tipFmt: pct, xName: v => v + ' edges', label: 'Recovery curve' },
+    () => table(['Edges', ...curves.map(g => genLabel(run, g.gen))], (curves[0] ? curves[0].circuits[S.target].eap.curve : []).filter(p => p[0] <= 100).map((p, i) => [String(p[0]), ...curves.map(g => pct((g.circuits[S.target].eap.curve[i] || [])[1]))]))));
+  const sw = curves.filter(g => g.circuits[S.target].acdc);
+  if (sw.length) {
+    const swSeries = sw.map(g => ({ label: genLabel(run, g.gen), color: gcol(g.gen), width: g.gen === S.gen ? 3 : 1.5, dim: g.gen !== S.gen && run.suite !== 'single', points: g.circuits[S.target].acdc.sweep.map((p, i) => [i, p[1]]) }));
+    const taus = sw[0].circuits[S.target].acdc.sweep.map(p => p[0]);
+    side.append(chartCard('ACDC edges by threshold', 'Circuit size across the τ sweep.', { series: swSeries, height: 160, markers: true, xTicks: taus.map((_, i) => i), xFmt: i => taus[i], xName: i => 'τ = ' + taus[i], label: 'ACDC sweep' },
+      () => table(['τ', ...sw.map(g => genLabel(run, g.gen))], taus.map((t, i) => [String(t), ...sw.map(g => { const p = g.circuits[S.target].acdc.sweep[i]; return p ? `${p[1]} (${pct(p[2])})` : ''; })]))));
+  }
+  sec.append(el('div', { class: 'circuit' }, el('div', { style: 'display:grid;gap:12px;min-width:0' }, plate,
+    el('p', { class: 'note', text: 'A0.2 is head 2 of layer 0. Dotted, dashed and solid arrows enter a head\'s Q, K and V inputs. Blue edges support the correct answer, red edges oppose it; width is the edge score. Diagrams show at most 40 edges.' })), side));
+
+  if (sp && run.suite !== 'single' && col >= 0) {
+    sec.append(el('div', { class: 'group-label', text: `${TARGETS[S.target]} · ${S.method === 'eap' ? 'edge attribution' : 'ACDC'} · every generation` }));
+    sec.append(el('div', { class: 'strip' }, sp.rows.map((g, r) => el('button', { type: 'button', class: 'thumb', 'aria-pressed': String(g === S.gen), onclick: () => { S.gen = g; render(); } }, spriteBox(sp, r, col), el('span', { text: 'Gen ' + g })))));
+  }
+  main.append(sec);
+}
+
+function notebookFigures(main, names, eyebrow) {
+  const figs = names.map(n => D.notebook && D.notebook[n]).filter(Boolean);
+  const sec = el('section', { class: 'panel' });
+  sec.append(el('div', { class: 'panel-head' }, el('div', {}, el('span', { class: 'eyebrow', text: eyebrow }), el('h2', { text: 'Attention heads' }),
+    el('p', { class: 'lede', text: 'Figures from plotting/nlp_project.ipynb, run on the same results. Layer 0 should hold previous-token heads and layer 1 induction heads. Click a figure to enlarge it.' }))));
+  if (!figs.length) {
+    sec.append(el('div', { class: 'empty', text: 'The notebook has not produced figures for this run yet.' }));
+    main.append(sec); return;
+  }
+  const grid = el('div', { class: 'figs' });
+  figs.forEach(f => {
+    const img = el('img', { src: f.file, alt: f.title, loading: 'lazy', width: f.size[0], height: f.size[1] });
+    const plate = el('button', { type: 'button', class: 'plate figplate', 'aria-label': 'Enlarge: ' + f.title, onclick: () => imageBox(f) }, img);
+    grid.append(el('figure', { class: 'fig' + (f.size[0] / f.size[1] > 2.2 ? ' span' : '') }, plate, el('figcaption', {}, el('b', { text: f.title }), ' ', f.caption)));
+  });
+  sec.append(grid);
+  main.append(sec);
+}
+
+function imageBox(f) {
+  const prev = document.activeElement;
+  const close = () => { lb.remove(); document.removeEventListener('keydown', onKey); if (prev) prev.focus(); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  const btn = el('button', { type: 'button', onclick: close, text: 'Close' });
+  const lb = el('div', { class: 'lightbox', role: 'dialog', 'aria-modal': 'true', 'aria-label': f.title, onclick: e => { if (e.target === lb) close(); } },
+    el('div', { class: 'inner' }, el('div', { class: 'bar2' }, el('span', { text: f.title }), btn), el('img', { src: f.file, alt: f.title, style: 'width:100%;height:auto' })));
+  document.body.append(lb);
+  document.addEventListener('keydown', onKey);
+  btn.focus();
+}
+
+/* ---------- symbol embeddings ---------- */
+function embeddingSection(main, run) {
+  const E = run.embeddings;
+  if (!E || !E.snapshots.length) return;
+  const snaps = E.snapshots;
+  if (S.snap == null || S.snap >= snaps.length) S.snap = snaps.length - 1;
+  const sn = snaps[S.snap];
+  const single = run.suite === 'single';
+  const sec = el('section', { class: 'panel' });
+  sec.append(el('div', { class: 'panel-head' }, el('div', {}, el('span', { class: 'eyebrow', text: run.name }), el('h2', { text: 'How the symbols are embedded' }),
+    el('p', { class: 'lede', text: 'A symbol is an Omniglot drawing. A frozen ResNet18 turns it into 512 features, and the model learns one linear layer that maps them into its 64-dimensional residual stream. Labels get their own learned embedding. Everything here is read from the saved checkpoints.' }))));
+  const step = (b, s, learned) => el('div', { class: 'step' + (learned ? ' learned' : '') }, el('b', { text: b }), el('span', { text: s }));
+  sec.append(el('div', { class: 'pipeline', 'aria-label': 'Embedding pipeline' },
+    step('Omniglot drawing', '1,623 characters × 5 drawings'), el('span', { class: 'arrow', text: '→' }),
+    step('ResNet18 features', 'frozen · 512 values per drawing'), el('span', { class: 'arrow', text: '→' }),
+    step('example_embed', 'learned linear + bias · 512 → 64', true), el('span', { class: 'arrow', text: '→' }),
+    step('Residual stream', 'x1 y1 x2 y2 xq, with labels from label_embed (5 → 64, learned)')));
+
+  sec.append(el('div', { class: 'controls' }, el('div', { class: 'group-label', text: single ? 'Checkpoint' : 'Generation' }),
+    el('div', { class: 'seg', role: 'group', 'aria-label': 'Snapshot' },
+      snaps.map((x, i) => el('button', { type: 'button', 'aria-pressed': String(i === S.snap), onclick: () => { S.snap = i; render(); } }, single ? seqs(x.iter) : x.label)))));
+
+  // Scatter of the embedded drawings: first two principal components.
+  const P = E.points, n = P.class.length, xy = sn.xy;
+  const W = 640, H = 440, pad = 16;
+  const X = v => pad + (v + 1) / 2 * (W - 2 * pad), Y = v => pad + (1 - (v + 1) / 2) * (H - 2 * pad);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Embedded drawings on their first two principal components' });
+  const byClass = new Map();
+  for (let i = 0; i < n; i++) { if (!byClass.has(P.class[i])) byClass.set(P.class[i], []); byClass.get(P.class[i]).push(i); }
+  const lines = svgEl('g'), dots = svgEl('g');
+  byClass.forEach(ix => {
+    const cx = ix.reduce((a, i) => a + xy[2 * i], 0) / ix.length, cy = ix.reduce((a, i) => a + xy[2 * i + 1], 0) / ix.length;
+    const col = ix[0] < P.n_train ? 'var(--e-train)' : 'var(--e-test)';
+    ix.forEach(i => lines.append(svgEl('line', { x1: X(cx), y1: Y(cy), x2: X(xy[2 * i]), y2: Y(xy[2 * i + 1]), 'data-c': P.class[i], style: `stroke:${col};stroke-width:1;opacity:0.3` })));
+  });
+  for (let i = 0; i < n; i++) {
+    const col = i < P.n_train ? 'var(--e-train)' : 'var(--e-test)';
+    const seen = P.exemplar[i] === 0;
+    dots.append(svgEl('circle', { cx: X(xy[2 * i]), cy: Y(xy[2 * i + 1]), r: seen ? 4.5 : 3, 'data-c': P.class[i],
+      style: seen ? `fill:${col};stroke:var(--surface);stroke-width:2` : `fill:var(--surface);stroke:${col};stroke-width:1.5` }));
+  }
+  svg.append(lines, dots);
+  const box = el('div', { class: 'scatter' }, svg);
+  const marks = svg.querySelectorAll('[data-c]');
+  const focus = c => marks.forEach(m => { m.style.opacity = c == null ? '' : (m.dataset.c === String(c) ? '1' : '0.1'); });
+  svg.addEventListener('pointermove', e => {
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width, py = (e.clientY - r.top) * H / r.height;
+    let best = -1, bd = 14 * 14;
+    for (let i = 0; i < n; i++) { const d = (X(xy[2 * i]) - px) ** 2 + (Y(xy[2 * i + 1]) - py) ** 2; if (d < bd) { bd = d; best = i; } }
+    if (best < 0) { focus(null); tip.hidden = true; return; }
+    focus(P.class[best]);
+    tip.textContent = '';
+    tip.append(el('div', { class: 't', text: (best < P.n_train ? 'Train class ' : 'Held-out class ') + P.class[best] }),
+      el('div', { text: P.exemplar[best] === 0 ? 'Drawing 0, the one used in training' : `Drawing ${P.exemplar[best]}, never seen in training` }));
+    tip.hidden = false;
+    tip.style.left = (e.clientX + 14 + window.scrollX) + 'px'; tip.style.top = (e.clientY + 14 + window.scrollY) + 'px';
+  });
+  svg.addEventListener('pointerleave', () => { focus(null); tip.hidden = true; });
+  const legend = el('div', { class: 'legend' },
+    el('span', {}, el('i', { style: 'background:var(--e-train);height:9px;width:9px;border-radius:50%' }), '50 train classes'),
+    el('span', {}, el('i', { style: 'background:var(--e-test);height:9px;width:9px;border-radius:50%' }), '20 of the 100 held-out classes'),
+    el('span', { text: 'Filled: the drawing used in training. Hollow: unseen drawings. Lines join each drawing to its class centre.' }));
+
+  // Side panel: metrics for this snapshot, against the ResNet18 features alone.
+  const m = sn.metrics, raw = E.raw;
+  const stat = (k, v, s) => el('div', { class: 'stat' }, el('span', { class: 'k', text: k }), el('span', { class: 'v', text: v }), s ? el('span', { class: 's', text: s }) : null);
+  const stats = el('div', { class: 'stats' },
+    stat('Matching · train classes', pct(m.train.match), 'ResNet18 alone ' + pct(raw.train.match)),
+    stat('Matching · held-out classes', pct(m.test.match), 'ResNet18 alone ' + pct(raw.test.match)),
+    stat('Same-class similarity', num(m.train.within), 'other classes ' + num(m.train.between)),
+    stat('Effective dimensions', num(m.train.dim), 'of 64 · ResNet18 ' + num(raw.train.dim)));
+  const heat = el('div', { class: 'heat', role: 'img', 'aria-label': 'Cosine similarity between the five label embeddings' }, el('span', { class: 'h' }), [0, 1, 2, 3, 4].map(j => el('span', { class: 'h', text: 'y' + j })));
+  m.label_cos.forEach((row, i) => {
+    heat.append(el('span', { class: 'h', text: 'y' + i }));
+    row.forEach(v => {
+      const a = Math.min(1, Math.abs(v)), c = v >= 0 ? 'var(--div-pos)' : 'var(--div-neg)';
+      heat.append(el('span', { class: a > 0.6 ? 'light' : '', style: `background:color-mix(in oklab, ${c} ${Math.round(a * 100)}%, var(--div-mid))`, text: v.toFixed(2) }));
+    });
+  });
+  const side = el('div', { class: 'side' }, stats,
+    el('div', { class: 'card' }, el('h3', { text: 'Label embeddings' }),
+      el('p', { class: 'note', text: `Cosine similarity between the five value labels. A label vector is ${num(m.label_norm_ratio)}× as long as a symbol vector, but each token is layer-normalised before attention, so length alone does not set its weight.` }), heat),
+    m.readout_alignment != null ? el('div', { class: 'stats', style: 'grid-template-columns:1fr' },
+      stat('Readout alignment', num(m.readout_alignment), 'cosine of each class\'s next-symbol readout with its own input embedding, minus with other classes')) : null);
+  sec.append(el('div', { class: 'embed' }, el('div', { style: 'display:grid;gap:10px;min-width:0' }, box, legend,
+    el('p', { class: 'note', text: `First two principal components of the embedded drawings, rotated to line up with the ${single ? 'trained model' : 'first generation'} so snapshots are comparable. Matching: each unseen drawing picks the closest drawing used in training (cosine of centred embeddings); chance is 2% among the 50 train classes and 1% among the 100 held-out classes.` })), side));
+
+  // Single runs: metrics across 40 checkpoints, with the ResNet18 features as a flat reference.
+  if (E.over_training) {
+    const ot = E.over_training;
+    const flat = (v, label) => ({ label, color: 'var(--muted)', width: 1.5, points: [[ot[0].iter, v], [ot.at(-1).iter, v]] });
+    const g = el('div', { class: 'grid' });
+    const mk = (title, sub, key, fmt, opts) => g.append(chartCard(title, sub, Object.assign({ series: [
+        { label: 'Train classes', color: 'var(--e-train)', points: ot.map(o => [o.iter, o.train[key]]) },
+        { label: 'Held-out classes', color: 'var(--e-test)', points: ot.map(o => [o.iter, o.test[key]]) },
+        flat(raw.train[key], 'ResNet18 · train'), flat(raw.test[key], 'ResNet18 · held-out')],
+      xFmt: seqs, xName: v => seqs(v) + ' sequences', tipFmt: fmt, label: title }, opts),
+      () => table(['Sequences', 'Train classes', 'Held-out classes'], ot.map(o => [seqs(o.iter), fmt(o.train[key]), fmt(o.test[key])]))));
+    mk('One-shot matching accuracy', 'Grey: the ResNet18 features before the learned layer.', 'match', pct, { yMin: 0, yFmt: v => Math.round(v * 100) + '%' });
+    mk('Effective dimensions', 'Participation ratio of the embedded drawings.', 'dim', num, { yMin: 0 });
+    mk('Same-class similarity', 'Mean centred cosine between drawings of one character.', 'within', num, { yMin: 0 });
+    sec.append(el('div', { class: 'group-label', text: 'Over training' }), g);
+    sec.append(el('div', { class: 'legend' },
+      el('span', {}, el('i', { style: 'background:var(--e-train)' }), 'Train classes'),
+      el('span', {}, el('i', { style: 'background:var(--e-test)' }), 'Held-out classes'),
+      el('span', {}, el('i', { style: 'background:var(--muted)' }), 'ResNet18 features (train, held-out)')));
+  }
+  main.append(sec);
+}
+
+/* ---------- which heads talk to each other ---------- */
+const CIRCUIT_NAMES = { single_path: 'P → I path only', induction_heads: 'Induction heads', induction_heads_plus: 'Induction heads + strong edges', strong_edges: 'Strong edges', acdc: 'ACDC (τ = 0.001)', full: 'Full model' };
+const share = v => v == null ? '–' : (Math.abs(v) < 0.0005 ? '0%' : (v * 100).toFixed(Math.abs(v) < 0.1 ? 1 : 0) + '%');
+
+function hbar(value, max, opts) {
+  opts = opts || {};
+  const v = value == null ? 0 : value;
+  const w = Math.max(0, Math.min(1, Math.abs(v) / (max || 1))) * 100;
+  const track = el('span', { class: 'hb-track' }, el('i', { style: `width:${w}%;background:${v < 0 ? 'var(--div-neg)' : (opts.color || 'var(--accent)')}` }));
+  if (opts.mark != null) track.append(el('b', { class: 'hb-mark', style: `left:${Math.min(100, opts.mark / max * 100)}%` }));
+  return el('span', { class: 'hb' }, track, el('span', { class: 'hb-v', text: (opts.fmt || share)(value) }));
+}
+
+function headGraph(hc, chan) {
+  const W = 620, H = 360, nodeW = 66, nodeH = 26;
+  const xs = [70, 300, 540];
+  const ys = i => 26 + i * (H - 52) / 7;
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H + 24}`, role: 'img', 'aria-label': `Edges into layer-1 ${chan} inputs, width = share of the gap lost` });
+  [['Input', xs[0], 'middle'], ['Layer 0 · previous-token score', xs[1], 'middle'], ['Layer 1 · induction score', xs[2] + nodeW / 2, 'end']].forEach(([t, x, anchor]) => {
+    const tx = svgEl('text', { x, y: H + 18, 'text-anchor': anchor, class: 'hg-col' }); tx.textContent = t; svg.append(tx);
+  });
+  const m = hc.matrix[chan];
+  const vmax = Math.max(0.05, ...m.flat().filter(v => v != null).map(Math.abs));
+  const edges = svgEl('g');
+  m.forEach((row, si) => row.forEach((v, j) => {
+    if (v == null || Math.abs(v) < 0.01) return;
+    const x1 = si === 0 ? xs[0] + nodeW / 2 : xs[1] + nodeW / 2, y1 = si === 0 ? H / 2 : ys(si - 1);
+    const x2 = xs[2] - nodeW / 2, y2 = ys(j);
+    const mx = (x1 + x2) / 2;
+    const d = `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+    const a = Math.abs(v) / vmax;
+    const col = v < 0 ? 'var(--div-neg)' : 'var(--accent)';
+    const path = svgEl('path', { d, fill: 'none', style: `stroke:${col};stroke-width:${(1 + 9 * a).toFixed(1)};opacity:${(0.3 + 0.7 * a).toFixed(2)};stroke-linecap:round` });
+    const hit = svgEl('path', { d, fill: 'none', style: 'stroke:transparent;stroke-width:14;cursor:default' });
+    const name = `${hc.senders[si] === 'Resid Start' ? 'Embed' : hc.senders[si]} → A1.${j}.${chan}`;
+    hit.addEventListener('pointermove', e => {
+      tip.textContent = '';
+      tip.append(el('div', { class: 't', text: name }), el('div', {}, el('b', { text: share(v) }), ' of the clean–corrupt gap lost when this edge alone is corrupted'));
+      tip.hidden = false; tip.style.left = (e.clientX + 14 + window.scrollX) + 'px'; tip.style.top = (e.clientY + 14 + window.scrollY) + 'px';
+    });
+    hit.addEventListener('pointerleave', () => { tip.hidden = true; });
+    edges.append(path, hit);
+  }));
+  svg.append(edges);
+  const node = (x, y, label, score, role) => {
+    const g = svgEl('g');
+    const a = score == null ? 0 : Math.max(0, Math.min(1, score));
+    g.append(svgEl('rect', { x: x - nodeW / 2, y: y - nodeH / 2, width: nodeW, height: nodeH, rx: 6,
+      style: `fill:color-mix(in oklab, var(--div-pos) ${Math.round(a * 85)}%, var(--surface));stroke:${role ? 'var(--accent)' : 'var(--axis)'};stroke-width:${role ? 2.5 : 1}` }));
+    const t = svgEl('text', { x, y: y + 4, 'text-anchor': 'middle', class: 'hg-node' + (a > 0.6 ? ' light' : '') });
+    t.textContent = label + (score == null ? '' : ' ' + score.toFixed(2)); g.append(t);
+    if (role) { const r = svgEl('text', { x: x + (x > W / 2 ? nodeW / 2 + 10 : -nodeW / 2 - 10), y: y + 4, 'text-anchor': 'middle', class: 'hg-role' }); r.textContent = role; g.append(r); }
+    return g;
+  };
+  svg.append(node(xs[0], H / 2, 'Embed', null, null));
+  for (let i = 0; i < 8; i++) svg.append(node(xs[1], ys(i), 'A0.' + i, hc.prev[i], hc.P === 'A0.' + i ? 'P' : null));
+  for (let j = 0; j < 8; j++) svg.append(node(xs[2], ys(j), 'A1.' + j, hc.ind ? hc.ind[j] : null, hc.I === 'A1.' + j ? 'I' : null));
+  return svg;
+}
+
+function edgeHeat(hc, chan) {
+  const m = hc.matrix[chan];
+  const vmax = Math.max(0.05, ...m.flat().filter(v => v != null).map(Math.abs));
+  const g = el('div', { class: 'heat heat9', role: 'img', 'aria-label': 'Share of the gap lost per edge' }, el('span', { class: 'h' }), [...Array(8).keys()].map(j => el('span', { class: 'h', text: 'A1.' + j })));
+  m.forEach((row, si) => {
+    g.append(el('span', { class: 'h', text: hc.senders[si] === 'Resid Start' ? 'Embed' : hc.senders[si] }));
+    row.forEach(v => {
+      const a = v == null ? 0 : Math.min(1, Math.abs(v) / vmax), c = v != null && v < 0 ? 'var(--div-neg)' : 'var(--div-pos)';
+      g.append(el('span', { class: a > 0.6 ? 'light' : '', style: `background:color-mix(in oklab, ${c} ${Math.round(a * 100)}%, var(--div-mid))`, text: v == null || Math.abs(v) < 0.005 ? '' : Math.round(v * 100) + '' }));
+    });
+  });
+  return g;
+}
+
+function headCircuitSection(main, run) {
+  const gens = run.gens.filter(g => g.head_circuit && Object.keys(g.head_circuit).length);
+  if (!gens.length) return;
+  const targets = Object.keys(gens[0].head_circuit);
+  if (!targets.includes(S.target)) S.target = targets[0];
+  if (!gens.some(g => g.gen === S.gen)) S.gen = gens[0].gen;
+  const ge = gens.find(g => g.gen === S.gen);
+  const hc = ge.head_circuit[S.target];
+  if (!hc) return;
+  S.chan = S.chan || 'K';
+  const single = run.suite === 'single';
+  const sec = el('section', { class: 'panel' });
+  sec.append(el('div', { class: 'panel-head' }, el('div', {}, el('span', { class: 'eyebrow', text: run.name }), el('h2', { text: 'Which heads talk to each other' }),
+    el('p', { class: 'lede', text: 'Causal tests of the circuit on the same prompts as circuit discovery: one edge at a time is fed the corrupted prompt\'s activation, single heads are ablated, and candidate circuits are kept clean while everything else is corrupted.' }))));
+  const seg = (label, items, key, names) => el('div', { class: 'seg', role: 'group', 'aria-label': label }, items.map(k => el('button', { type: 'button', 'aria-pressed': String(S[key] === k), onclick: () => { S[key] = k; render(); } }, names[k])));
+  sec.append(el('div', { class: 'controls' },
+    seg('Circuit target', targets, 'target', TARGETS),
+    seg('Receiver input', CHANNELS_, 'chan', { Q: 'Query input', K: 'Key input', V: 'Value input' }),
+    single ? null : seg('Generation', gens.map(g => g.gen), 'gen', Object.fromEntries(gens.map(g => [g.gen, 'Gen ' + g.gen])))));
+  if (!hc.ok) sec.append(el('div', { class: 'empty', text: 'This model barely separates the clean and corrupted prompts (logit-difference gap below 1), so the shares and recoveries below are not meaningful and are left out.' }));
+
+  const roles = hc.roles || {};
+  const facts = el('div', { class: 'stats' },
+    statBox('Previous-token head P', hc.P, 'score ' + num(Math.max(...hc.prev))),
+    statBox('Induction head I', hc.I || '–', hc.ind ? 'score ' + num(Math.max(...hc.ind)) : 'not defined for this target'),
+    statBox('Strongest head → head edge', hc.top.replace('->', ' → '), 'by single-edge noising'),
+    statBox('Clean / corrupt D', `${num(hc.clean[0])} / ${num(hc.corrupt[0])}`, `accuracy ${pct(hc.clean[1])} / ${pct(hc.corrupt[1])}`));
+  const roleNote = el('p', { class: 'note', text: `Previous-token heads (score ≥ 0.5): ${(roles.previous_token_heads || []).join(', ') || '–'}. Induction heads (score ≥ 0.5): ${(roles.induction_heads || []).join(', ') || '–'}.` });
+
+  // graph + matrix
+  const graphCard = el('div', { class: 'card' }, el('div', { class: 'card-head' }, el('div', {}, el('h3', { text: `Edges into each layer-1 head's ${S.chan} input` }),
+    el('p', { text: 'Line width: share of the clean–corrupt gap lost when that edge alone carries the corrupted activation (edges under 1% hidden). Node shade: the head\'s attention score.' })))
+    , el('div', { class: 'hg' }, headGraph(hc, S.chan)));
+  const heatCard = el('div', { class: 'card' }, el('h3', { text: 'Edge matrix, % of gap lost' }), el('p', { class: 'note', text: 'Rows send, columns receive. Blue hurts the answer when corrupted; red helps.' }), edgeHeat(hc, S.chan));
+  sec.append(facts, roleNote, el('div', { class: 'hc-row' }, graphCard, heatCard));
+
+  // P -> I connection
+  hc.connections.forEach(con => {
+    const rows = CHANNELS_.map(c => {
+      const x = con.channels[c];
+      const ret = v => v == null ? '–' : num(v);
+      return el('tr', { class: c === S.chan ? 'sel' : '' }, el('td', { text: c }),
+        el('td', {}, hbar(x.disrupt, 1)), el('td', { class: 'mono', text: ret(x.ret.disrupt) }),
+        el('td', {}, hbar(x.input_corrupt, 1)), el('td', {}, hbar(x.restore, 1)),
+        el('td', {}, hbar(x.restore_alone, 1)), el('td', { class: 'mono', text: ret(x.ret.restore_alone) }));
+    });
+    sec.append(el('div', { class: 'card' }, el('div', { class: 'card-head' }, el('div', {},
+      el('h3', { text: `${con.sender} → ${con.receiver}, per input channel` }),
+      el('p', { text: `${con.receiver} retrieves the matching label with score ${con.clean_ret == null ? '–' : num(con.clean_ret)} on clean prompts. Disrupt: only this edge is corrupted. Restore: every edge into the input is corrupted except this one. Restore alone: on the corrupted prompt, only this edge carries ${con.sender}'s clean output.` }))),
+      el('div', { class: 'tablewrap' }, el('table', { class: 'hc-table' },
+        el('thead', {}, el('tr', {}, ['Input', 'Disrupt: gap lost', 'Retrieval', 'Corrupt all inputs: gap lost', 'Restore edge: damage undone', 'Restore alone: R', 'Retrieval'].map(t => el('th', { text: t })))),
+        el('tbody', {}, rows)))));
+  });
+
+  // circuits + head ablation side by side
+  const cOrder = Object.keys(CIRCUIT_NAMES).filter(k => hc.circuits[k]);
+  const cRows = cOrder.map(k => { const c = hc.circuits[k]; return el('tr', { class: k === 'induction_heads' ? 'sel' : '' },
+    el('td', { text: CIRCUIT_NAMES[k] }), el('td', { class: 'mono', text: String(c.n) }), el('td', {}, hbar(c.R, 1, { mark: 0.8 })),
+    el('td', { class: 'mono', text: pct(c.acc) }), el('td', { class: 'mono', text: c.eval_acc == null ? '–' : pct(c.eval_acc) })); });
+  const circCard = el('div', { class: 'card' }, el('h3', { text: 'Does the circuit reproduce the behaviour?' }),
+    el('p', { class: 'note', text: 'R = (D_circuit − D_corrupt) / (D_clean − D_corrupt), with the circuit clean and every other edge corrupted. Tick: the 80% target. Accuracy on the circuit prompts and on held-out classes.' }),
+    el('div', { class: 'tablewrap' }, el('table', { class: 'hc-table' }, el('thead', {}, el('tr', {}, ['Circuit', 'Edges', 'Recovery R', 'Accuracy', 'Held-out'].map(t => el('th', { text: t })))), el('tbody', {}, cRows))));
+  S.abl = S.abl || 'resample';
+  const heads = Object.keys(hc.ablation);
+  const aRows = heads.map(h => { const [g, acc] = hc.ablation[h][S.abl]; return el('tr', { class: h === hc.P || h === hc.I ? 'sel' : '' },
+    el('td', { text: h + (h === hc.P ? ' · P' : h === hc.I ? ' · I' : '') }), el('td', {}, hbar(g, 1)), el('td', { class: 'mono', text: acc == null ? '–' : pct(acc) })); });
+  const ablCard = el('div', { class: 'card' }, el('div', { class: 'card-head' }, el('div', {}, el('h3', { text: 'Ablating one head' }),
+    el('p', { text: `Zero and mean ablation remove the head; resample ablation feeds it the corrupted prompt. Held-out accuracy with the full model: ${hc.eval_clean == null ? '–' : pct(hc.eval_clean)}.` })),
+    seg('Ablation', ['zero', 'mean', 'resample'], 'abl', { zero: 'Zero', mean: 'Mean', resample: 'Resample' })),
+    el('div', { class: 'tablewrap' }, el('table', { class: 'hc-table' }, el('thead', {}, el('tr', {}, ['Head', 'Gap lost', 'Held-out accuracy'].map(t => el('th', { text: t })))), el('tbody', {}, aRows))));
+  sec.append(el('div', { class: 'hc-row' }, circCard, ablCard));
+
+  // over generations, for this run
+  if (!single && gens.length > 1) {
+    const pi = g => { const h = g.head_circuit[S.target]; return h && h.connections[0] ? h.connections[0].channels : null; };
+    const grid = el('div', { class: 'grid' });
+    const mk = (title, sub, series, fmt, extra) => grid.append(chartCard(title, sub, Object.assign({ series, xMin: 0, xMax: 5, xTicks: [0, 1, 2, 3, 4, 5], xName: g => 'Generation ' + g, markers: true, tipFmt: fmt, yFmt: v => Math.round(v * 100) + '%', label: title }, extra),
+      () => table(['Series', ...gens.map(g => 'Gen ' + g.gen)], series.map(s => [s.label, ...gens.map(g => { const p = s.points.find(q => q[0] === g.gen); return p ? fmt(p[1]) : ''; })]))));
+    const chanSeries = key => CHANNELS_.map((c, k) => ({ label: c + ' input', color: `var(--c-${COND_ORDER[k]})`, points: gens.map(g => [g.gen, pi(g) ? pi(g)[c][key] : null]) }));
+    mk('Disrupting P → I', 'Share of the gap lost, per input channel.', chanSeries('disrupt'), share, { yMin: 0 });
+    mk('Restoring P → I', 'Share of the damage undone, per input channel.', chanSeries('restore'), share, { yMin: 0 });
+    mk('Circuit recovery R', 'Dashed target: 80%.', ['single_path', 'induction_heads', 'acdc'].map((k, i) => ({ label: CIRCUIT_NAMES[k], color: `var(--c-${COND_ORDER[i]})`, points: gens.map(g => [g.gen, (g.head_circuit[S.target].circuits[k] || {}).R ?? null]) })), share, { yMin: 0, yMax: 1 });
+    sec.append(el('div', { class: 'group-label', text: 'Across this run\'s generations · P and I are re-identified in every generation' }), grid);
+  }
+  main.append(sec);
+}
+
+function statBox(k, v, s) {
+  return el('div', { class: 'stat' }, el('span', { class: 'k', text: k }), el('span', { class: 'v', text: v }), s ? el('span', { class: 's', text: s }) : null);
+}
+const CHANNELS_ = ['Q', 'K', 'V'];
+
+function lightbox(run, sp, row, col) {
+  if (!sp || row < 0 || col < 0) return;
+  const prev = document.activeElement;
+  const close = () => { lb.remove(); document.removeEventListener('keydown', onKey); if (prev) prev.focus(); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  const btn = el('button', { type: 'button', onclick: close, text: 'Close' });
+  const lb = el('div', { class: 'lightbox', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Circuit diagram',
+    onclick: e => { if (e.target === lb) close(); } },
+    el('div', { class: 'inner' }, el('div', { class: 'bar2' }, el('span', { text: `${run.name} · ${genLabel(run, sp.rows[row])} · ${TARGETS[sp.cols[col][0]]} · ${sp.cols[col][1] === 'eap' ? 'edge attribution' : 'ACDC'}` }), btn), spriteBox(sp, row, col)));
+  document.body.append(lb);
+  document.addEventListener('keydown', onKey);
+  btn.focus();
+}
+
+/* ---------- page ---------- */
+function render() {
+  tip.hidden = true;
+  renderFilters();
+  const main = document.getElementById('main'); main.textContent = '';
+  if (S.suite === 'single') {
+    if (!D.runs.base && !D.runs.extended) return emptyState(main);
+    singleOverview(main);
+    const run = D.runs[S.variant];
+    if (run) {
+      trainingCurvesSingle(main, run);
+      embeddingSection(main, run);
+      circuitsThenHeads(main, run);
+      notebookFigures(main, D.notebook_order.filter(k => k !== 'heads_per_generation' && k !== 'induction_across_generations').map(k => `${S.variant}_${k}`), S.variant + ' model');
+    }
+    else main.append(el('div', { class: 'empty', text: `The ${S.variant} run has no results yet.` }));
+    return;
+  }
+  const runs = runsOf(S.suite, S.variant);
+  if (!runs.length) return emptyState(main);
+  if (!runs.some(r => r.condition === S.cond)) S.cond = runs[0].condition;
+  acrossGenerations(main);
+  const run = currentRun();
+  const pick = el('section', { class: 'panel' }, el('div', { class: 'panel-head' }, el('div', {}, el('span', { class: 'eyebrow', text: 'Run detail' }), el('h2', { text: 'One pool condition' }),
+    el('p', { class: 'lede', text: 'Choose a condition. The training curves and circuit diagrams below follow it.' }))), runPicker(runs));
+  main.append(pick);
+  trainingCurves(main, run);
+  embeddingSection(main, run);
+  circuitsThenHeads(main, run);
+  notebookFigures(main, [`${run.name}_heads_per_generation`].concat(S.suite === 'main' ? [`collapse_${S.variant}_induction_across_generations`] : []), run.name);
+}
+
+function circuitsThenHeads(main, run) {
+  circuits(main, run);
+  headCircuitSection(main, run);
+}
+
+function trainingCurvesSingle(main, run) {
+  // The overview already compares both variants; this panel adds the chosen variant's other metrics.
+  trainingCurves(main, run);
+}
+
+function emptyState(main) {
+  const su = D.suites.find(x => x.id === S.suite);
+  const exp = Object.entries(D.expected).filter(([, e]) => e.suite === S.suite && e.variant === S.variant);
+  main.append(el('div', { class: 'empty' }, el('h2', { text: su.label + ': no results yet' }),
+    el('p', { text: 'The run script has not reached these experiments. Rebuild the page once they finish to fill this view.' }),
+    el('div', { class: 'runlist' }, exp.map(([name]) => el('span', { class: 'pill', text: name })))));
+}
+
+fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+  D = d;
+  const h = location.hash.slice(1);
+  if (D.suites.some(s => s.id === h)) S.suite = h;
+  else if (!Object.values(D.runs).some(r => r.suite === 'main')) S.suite = 'single';
+  renderMeta();
+  document.getElementById('gen-note').textContent = 'Generation colours run from light (generation 0) to dark (generation 5).';
+  render();
+}).catch(err => {
+  document.getElementById('meta').textContent = 'Could not load data.json (' + err.message + '). Rebuild the page with python -m plotting.results_page.';
+});
+})();
+</script>
