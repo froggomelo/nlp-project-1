@@ -130,7 +130,7 @@ Accumulate & 5\% & 0.92\,{\tiny$\pm$0.02} & 0.7\,{\tiny$\pm$0.0} & 17\,{\tiny$\p
 \label{tab:summary}
 \end{table}
 
-\subsubsection{No errors, no collapse} \looseness=-1 At generation 0, both models solve the task by ICL, with mean test accuracies of 0.98 and 0.96, perplexities of 1.14 and 1.28, and validation accuracies of 0.99 and 0.97 for the base and extended models. At $T = 1$, only 0.01\% of labels are wrong after 20 generations, so that every replacement level yields the same model and accuracy stays at 0.98 (Table~\ref{tab:summary}), although under full replacement the circuit grows from 22 edges (Figure~\ref{fig:circuits}a) to as many as 57 as its margin falls from 18.4 to 12.5.
+\subsubsection{No errors, no collapse} \looseness=-1 At generation 0, both models solve the task by ICL, with mean test accuracies of 0.98 and 0.96, perplexities of 1.14 and 1.28, and validation accuracies of 0.99 and 0.97 for the base and extended models. At $T = 1$, only 0.01\% of labels are wrong after 20 generations, so that every replacement level yields the same model and accuracy stays at 0.98 (Table~\ref{tab:summary}), although under full replacement the circuit grows from 22 edges on average (17 in Figure~\ref{fig:circuits}a) to as many as 57 as its margin falls from 18.4 to 12.5.
 
 \begin{figure}[t]
   \centering
@@ -139,7 +139,7 @@ Accumulate & 5\% & 0.92\,{\tiny$\pm$0.02} & 0.7\,{\tiny$\pm$0.0} & 17\,{\tiny$\p
   \label{fig:circuits}
 \end{figure}
 
-\subsubsection{The circuit fails before accuracy} \looseness=-1 With errors forced at $T = 3$, full replacement halves the margin by generation 1, from 18.4 to 10.1, and more than triples the circuit to 74 edges while accuracy stays at 0.95 or above (Figure~\ref{fig:circuits}b). By generation 3, the circuit spans 211 edges across every head as accuracy falls to 0.66, and the extended model follows the same order.
+\subsubsection{The circuit fails before accuracy} \looseness=-1 With errors forced at $T = 3$, full replacement halves the margin by generation 1, from 18.4 to 10.1, and more than triples the circuit to 74 edges on average (55 in Figure~\ref{fig:circuits}b) while accuracy stays at 0.95 or above. By generation 3, the circuit spans 211 edges as accuracy falls to 0.66, and the extended model follows the same order.
 
 \subsubsection{The induction head: the match holds, the copy weakens} \looseness=-1 The induction head fails in two stages (Figure~\ref{fig:head}). Under full replacement, its attention to the matching label keeps 88\% of its generation 0 value by generation 2, whereas its direct effect keeps only 41\%, so that the head still finds the correct label but copies it far more weakly, and its attention collapses only at generation 4, after accuracy. Accumulation separates the two most clearly: attention to the match stays at 0.89 or above for 15 generations, whereas the direct effect falls by 86\%, so that real data preserve where the head looks but not how strongly it copies.
 
