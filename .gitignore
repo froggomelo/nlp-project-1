@@ -16,7 +16,11 @@ ih_paper_reprod/
 /results/
 /runs/
 wandb/
-visuals/
+# Generated figures and the downloaded Omniglot images; the scripts in visuals/ are tracked
+visuals/figures/
+visuals/omniglot/
+visuals/*.png
+visuals/*.pdf
 
 # Local secrets (keep example configuration trackable)
 .env
