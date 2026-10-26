@@ -70,7 +70,7 @@
 {
 \bf
 \looseness=-1
-Model collapse has so far been measured through outputs, which may understate it if internal mechanisms degrade first. This study therefore traces the induction circuit behind in-context learning (ICL) in two-layer transformers retrained on data that the previous model partly or wholly relabels, or that accumulates alongside the real data. A tuned model reproduces its own labels almost exactly, so that accuracy holds under every real-to-synthetic ratio. Once errors are forced through a raised sampling temperature, however, the circuit degrades first: its logit margin halves while accuracy is almost unchanged and predicts the next generation's error rate, so that errors compound through the circuit. Retaining real data limits how far accuracy falls, and accumulation delays its decline, but neither stops the margin's erosion. Overall, retaining real data protects a model's behaviour for longer than its circuit, so that collapse may be detected in circuits before outputs.
+Model collapse has so far been measured through outputs, which may understate it if internal mechanisms degrade first. This study therefore traces the induction circuit behind in-context learning (ICL) in two-layer transformers retrained on data that the previous model partly or wholly relabels, or that accumulates alongside the real data. A tuned model reproduces its own labels almost exactly, so that accuracy holds under every real-to-synthetic ratio. Once errors are forced through a raised sampling temperature, however, mechanistic changes precede accuracy loss: the logit margin halves and the circuit spreads while accuracy is almost unchanged, and the margin predicts the next generation's error rate, so that errors compound. Retaining real data limits how far accuracy falls, and accumulation delays its decline, but neither stops the margin's erosion. Overall, retaining real data protects a model's behaviour for longer than its circuit, so that collapse may be detected in the circuit before accuracy falls.
 }
 \begin{quote}
 \small
@@ -89,14 +89,14 @@ In-context learning (ICL) lets models adapt to new tasks from prompt examples wi
 \looseness=-1
 \subsubsection{Induction heads} \looseness=-1 A previous-token head copies each symbol into the label that follows it, and an induction head matches the query against these copies through its key input and copies the matching label to the output; several such heads can contribute additively \citep{singh2024}, and their formation tracks ICL ability \citep{chen2026}.
 
-\subsubsection{Collapse and accumulation} \looseness=-1 Collapse arises mainly from sampling error, which loses the tails of the distribution first and compounds each model's errors in the data of the next \citep{shumailov2024}. Replacing real data makes test error grow with every iteration, whereas accumulating synthetic data alongside it keeps the error bounded \citep{gerstgrasser2024}, and this study tests whether the same contrast holds for the induction circuit.
+\subsubsection{Collapse and accumulation} \looseness=-1 Collapse arises mainly from sampling error, which loses the tails of the distribution first and compounds across generations \citep{shumailov2024}. Replacing real data makes test error grow with every iteration, whereas accumulating it keeps the error bounded \citep{gerstgrasser2024}, a contrast this study tests in the induction circuit.
 
 \section{Methods}
 \label{sec:method}
 
 \looseness=-1 This study uses the setup of \citet{singh2024}: each sequence holds two exemplar--label pairs and a query, with Omniglot exemplars \citep{lake2015} encoded by a frozen ResNet18 \citep{he2016} and five labels reassigned per sequence, so that only the context holds the answer. A causal two-layer attention-only transformer with eight heads per layer trains on 50 classes for one million sequences, at learning rates of $10^{-4}$ (base) and $3 \times 10^{-4}$ (extended) tuned on 1,473 validation classes, and is tested on 100 unseen classes. The base model predicts the query's label, while the extended model also predicts a next symbol, chosen from the context, and its label, so that three tokens per sequence become synthetic.
 
-\subsubsection{Real-to-synthetic ratio} \looseness=-1 Each run trains on a pool of $N = 20{,}000$ sequences for up to 20 generations, the first real, with training length fixed and three seeds per condition. The previous model then regenerates the targets of 0\%, 50\%, 90\%, or 100\% of the pool from their real prompts, where 90\% matches the 10\% of real data kept by \citet{shumailov2024}. Accumulation instead adds $N$ synthetic sequences per generation \citep{gerstgrasser2024}, matching 50\% replacement at generation 1, so that keeping earlier data can be separated from the real share. Targets are sampled at temperature $T$, and as the tuned model makes almost no errors at $T = 1$, errors are also forced at $T = 3$ and 5.
+\subsubsection{Real-to-synthetic ratio} \looseness=-1 Each run trains on a pool of $N = 20{,}000$ sequences for up to 20 generations, the first real, with training length fixed and three seeds per condition. The previous model then regenerates the targets of 0\%, 50\%, 90\%, or 100\% of the pool from their real prompts, where 90\% matches the 10\% of real data kept by \citet{shumailov2024}. Accumulation instead adds $N$ synthetic sequences per generation \citep{gerstgrasser2024}, matching 50\% replacement at generation 1, so that keeping earlier data can be separated from the real share. As the tuned model makes almost no errors when sampling targets at $T = 1$, errors are also forced at $T = 3$ and 5.
 
 \subsubsection{Circuit analysis} \looseness=-1 Each generation is analysed on the same real sequences through its margin, the logit lead of the correct label over the other label in the context, and the edges that Automatic Circuit DisCovery (ACDC) \citep{conmy2023} keeps at $\tau = 0.001$, which measure how strongly and how sparsely the circuit separates the answer. The induction head's attention to the matching label measures whether it finds the answer, and its direct effect, the margin its output alone contributes, how strongly it copies it.
 
@@ -130,23 +130,23 @@ Accumulate & 5\% & 0.92\,{\tiny$\pm$0.02} & 0.7\,{\tiny$\pm$0.0} & 17\,{\tiny$\p
 \label{tab:summary}
 \end{table}
 
-\subsubsection{No errors, no collapse} \looseness=-1 At generation 0, both models solve the task by ICL, with mean test accuracies of 0.98 and 0.96, perplexities of 1.14 and 1.28, and validation accuracies of 0.99 and 0.97 for the base and extended models. At $T = 1$, only 0.01\% of labels are wrong after 20 generations, so that every replacement level yields the same model and accuracy stays at 0.98 (Table~\ref{tab:summary}), although under full replacement the circuit grows from 22 edges on average (17 in Figure~\ref{fig:circuits}a) to as many as 57 as its margin falls from 18.4 to 12.5.
+\subsubsection{No errors, no collapse} \looseness=-1 At generation 0, both models solve the task by ICL, with mean test accuracies of 0.98 and 0.96, perplexities of 1.14 and 1.28, and validation accuracies of 0.99 and 0.97 for the base and extended models. At $T = 1$, only 0.01\% of labels are wrong after 20 generations, so that every replacement level yields the same model and accuracy stays at 0.98, although the margin still falls under full replacement (Table~\ref{tab:summary}).
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.9\columnwidth]{images/circuits_two.pdf}
-  \caption{ACDC circuits of the base model (one seed); filled nodes are heads in the circuit, and wider edges have larger effects. The previous-token head A0.2 feeds the induction head A1.3 (a), and one generation of full replacement at $T = 3$ triples it (b).}
+  \caption{ACDC circuits of the base model (one seed), with filled nodes for heads in the circuit and wider edges for larger effects: the previous-token head A0.2 feeds the induction head A1.3 (a), and one generation of full replacement at $T = 3$ triples the circuit (b).}
   \label{fig:circuits}
 \end{figure}
 
-\subsubsection{The circuit fails before accuracy} \looseness=-1 With errors forced at $T = 3$, full replacement halves the margin by generation 1, from 18.4 to 10.1, and more than triples the circuit to 74 edges on average (55 in Figure~\ref{fig:circuits}b) while accuracy stays at 0.95 or above. By generation 3, the circuit spans 211 edges as accuracy falls to 0.66, and the extended model follows the same order.
+\subsubsection{Confidence and circuit change before accuracy} \looseness=-1 With errors forced at $T = 3$, full replacement halves the margin by generation 1, from 18.4 to 10.1, and more than triples the circuit, from 22 to 74 edges on average (17 and 55 in Figure~\ref{fig:circuits}), while accuracy stays at 0.95 or above. By generation 3, the circuit spans 211 edges as accuracy falls to 0.66, and the extended model follows the same order.
 
-\subsubsection{The induction head: the match holds, the copy weakens} \looseness=-1 The induction head fails in two stages (Figure~\ref{fig:head}). Under full replacement, its attention to the matching label keeps 88\% of its generation 0 value by generation 2, whereas its direct effect keeps only 41\%, so that the head still finds the correct label but copies it far more weakly, and its attention collapses only at generation 4, after accuracy. Accumulation separates the two most clearly: attention to the match stays at 0.89 or above for 15 generations, whereas the direct effect falls by 86\%, so that real data preserve where the head looks but not how strongly it copies.
+\subsubsection{The induction head: the match holds, the copy weakens} \looseness=-1 Under full replacement (Figure~\ref{fig:head}), the induction head's attention to the matching label keeps 88\% of its generation 0 value by generation 2, whereas its direct effect keeps only 41\%, and its attention collapses only at generation 4, after accuracy. Under accumulation, attention to the match stays at 0.89 or above for 15 generations, whereas the direct effect falls by 86\%, so that real data preserve where the head looks but not how strongly it copies.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.92\columnwidth]{images/induction_head.pdf}
-  \caption{The induction head's attention to the match and direct effect at $T = 3$, relative to generation 0 (mean of three seeds, range shaded): the copy weakens first.}
+  \caption{The induction head's attention to the match and direct effect at $T = 3$, relative to generation 0 (three-seed mean and range).}
   \label{fig:head}
 \end{figure}
 
@@ -155,19 +155,19 @@ Accumulate & 5\% & 0.92\,{\tiny$\pm$0.02} & 0.7\,{\tiny$\pm$0.0} & 17\,{\tiny$\p
 \hat{\epsilon}_{g+1} = \frac{4\,e^{-D_g/T}}{1 + 4\,e^{-D_g/T}}
 \label{eq:error}
 \end{equation}
-of these labels wrong, small while $D_g$ is several times $T$ but rising steeply as it shrinks. This predicts the observed share across both models, temperatures, and conditions to within 2.1 percentage points on average ($r = 0.994$), so that a falling margin writes more errors into the next pool and so lowers the next margin, a loop that only real data, whose labels stay correct, can slow.
+of these labels wrong, small while $D_g$ is several times $T$ but rising steeply as it shrinks. This predicts the observed share across both models, temperatures, and conditions to within 2.1 percentage points on average ($r = 0.994$), so that a falling margin writes more errors into the next pool and so lowers the next margin, a loop that only real data can slow.
 
-\subsubsection{The real share sets how far collapse goes} \looseness=-1 Over 20 generations at $T = 3$, each replacement level settles at an accuracy set by its real share, 0.79 with half of the real data, 0.33 with a tenth, and 0.19 with none, with both models' margins in the same order (Table~\ref{tab:summary}), although even half leaves the circuit spread across 194 edges. Accumulation holds accuracy at 0.96 or above for 15 generations, yet its margin falls by 96\%, and accuracy declines once it drops below 1 by generation 16.
+\subsubsection{The real share sets how far collapse goes} \looseness=-1 At $T = 3$, each replacement level settles at an accuracy set by its real share, 0.79 with half of the real data, 0.33 with a tenth, and 0.19 with none, with both models' margins in the same order (Table~\ref{tab:summary}), although even half leaves the circuit spread across 194 edges. Accumulation holds accuracy at 0.96 or above for 15 generations, yet its margin falls by 96\%, and accuracy declines once the margin drops below 1 by generation 16. The extended model's accuracy settles at 0.84, 0.34, and 0.20, and 0.93 under accumulation. It does not favour some symbols, as its next-symbol entropy stays at 3.86 or above, against 3.91 for a uniform choice, but copies wrongly: under full replacement, 96\% of its next symbols fall outside the context and its next-label accuracy falls from 0.96 to 0.20.
 
 \section{Discussion}
 \label{sec:discussion}
 
-\looseness=-1 The real-to-synthetic ratio shaped the induction circuit mainly once the synthetic data carried errors, as a tuned model reproduces its own labels almost exactly, and the margin then became the route through which collapse compounds, which extends \citet{shumailov2024} with the internal quantity that sets the sampling error. Within the induction head, the copy failed before the match, which suggests that the copying operation of \citet{singh2024} is the more fragile, likely because noisy labels lower its confidence rather than its ability to find the match. Accumulation protected accuracy, likely because every real prompt keeps its correct label, but not the margin, so that, unlike in \citet{gerstgrasser2024}, it delayed collapse rather than preventing it. The margin of an identified circuit could therefore flag collapse early. These conclusions are bounded by forcing errors through the sampling temperature rather than through a weaker model.
+\looseness=-1 The real-to-synthetic ratio shaped the induction circuit mainly once the synthetic data carried errors, and the margin then became the route through which collapse compounds, which extends \citet{shumailov2024} with the internal quantity that sets the sampling error. Within the induction head, the copy failed before the match, which suggests that the copying operation of \citet{singh2024} is the more fragile. Accumulation protected accuracy, likely because every real prompt keeps its correct label, but not the margin, so that, unlike in \citet{gerstgrasser2024}, it delayed collapse rather than preventing it. The falling margin shows declining confidence, and the spreading circuit and weakening copy a changed computation, both before accuracy fell, so that either could flag collapse early. These conclusions are bounded by forcing errors through the sampling temperature rather than through a weaker model.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-\looseness=-1 This investigation showed that, once synthetic data carry errors, the induction circuit degrades before accuracy does, while the share of real data sets only how far accuracy falls, from 0.79 with half to chance with none. Overall, retaining real data protects what a model does for longer than how confidently it does it, so that collapse is better detected in circuits than in outputs.
+\looseness=-1 This investigation showed that, once synthetic data carry errors, confidence and the induction circuit change before accuracy, while the share of real data sets only how far it falls, from 0.79 with half to chance with none. Overall, real data protect what a model does for longer than how confidently it does it, so that collapse is better detected in the circuit than in accuracy.
 
 \section{Contribution Statements}
 We, Lily de Melo, Tawananyasha Kadango, and Gopolang Mohlakola, worked together fairly on this project.
@@ -210,6 +210,6 @@ We, Lily de Melo, Tawananyasha Kadango, and Gopolang Mohlakola, worked together 
   \end{minipage}
 \end{figure}
 
-\includepdf[pages=-]{ai_dec.pdf}
+\includepdf[pages=-]{ai_dec_signed-flat.pdf}
 
 \end{document}
