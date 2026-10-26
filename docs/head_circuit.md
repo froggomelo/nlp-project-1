@@ -77,17 +77,7 @@ python -m src.head_circuit --checkpoint results/<run>/checkpoints/<iter>.eqx \
   --run_config results/<run>/config.json --out_folder results/<run>/head_circuit
 ```
 
-`scripts/nlp_project_run.sh` reads its sweep switches and `MAIN_RUNS` from the environment. The main configurations run alone with:
-
-```bash
-SMALL_POOL_SWEEP=0 ZIPF_SWEEP=0 BURST_SWEEP=0 bash scripts/nlp_project_run.sh
-```
-
-The sweeps then run on their own with:
-
-```bash
-MAIN_RUNS=0 bash scripts/nlp_project_run.sh
-```
+`scripts/nlp_project_run.sh` runs these tests on every generation of every experiment.
 
 ## Validation
 
@@ -95,7 +85,7 @@ On the base model retrained by the run script, D_clean is 9.18 and the ACDC circ
 
 ## Findings
 
-The findings below come from the tuned runs of `scripts/nlp_project_run.sh` started at `20261015142800`. These are the two single runs and the ten main collapse runs at N = 20,000 with six generations each. The sweeps write the same rows to their own `head_circuit.h5`. The gap is D_clean − D_corrupt for the exemplar swap, and the P → I.K numbers use that target unless stated otherwise. [results.md](results.md) reports accuracy and pool metrics for every experiment.
+The findings below come from the tuned models of seed 5 at T = 1: single-generation runs of each model on fresh data, and generations 0 to 5 of the collapse runs at N = 20,000. The 20-generation runs of [experiments.md](experiments.md) reproduce those six generations exactly. The gap is D_clean − D_corrupt for the exemplar swap, and the P → I.K numbers use that target unless stated otherwise. [results.md](results.md) reports accuracy and pool metrics, and the report traces the induction head at T = 3.
 
 ### Base Model
 
@@ -116,7 +106,7 @@ The induction-head circuit recovers 97% of the gap and stays within 0.4 percenta
 
 **The value route.** For the label swap, the induction-head circuit recovers 0.2%. Label content reaches A1.3's value input through layer-0 heads, mainly A0.6 (15% of the gap), A0.0 (6%), and A0.3 (6%). Restoring A0.6 → A1.3.V alone undoes 48% of the damage from corrupting A1.3's value input. Adding the edges above 2% lifts recovery to 74% with 85 edges. ACDC reaches 73% with 37 edges, below the 80% target at τ = 0.001.
 
-**Across collapse generations.** At T = 1 the mechanism survives every condition almost unchanged. P = A0.2 and I = A1.3 in every generation of every condition except generation 5 of `accumulate`, which moves to A0.1 and A1.1. The three replacement conditions train identical models, described in [results.md](results.md#main-collapse-runs), and share one row in the table.
+**Across collapse generations.** At T = 1 the mechanism survives every condition almost unchanged. P = A0.2 and I = A1.3 in every generation of every condition except generation 5 of `accumulate`, which moves to A0.1 and A1.1. The three replacement conditions train identical models, as the tuned base model regenerates almost every label correctly ([results.md](results.md#exploratory-experiments)), and share one row in the table.
 
 | Base model | I's induction score, gen 0 → gen 5 | Gap, gen 0 → gen 5 | P → I.K disrupt | P → I.K restore | Induction-head circuit R |
 |---|---|---|---|---|---|

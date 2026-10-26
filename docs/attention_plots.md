@@ -1,6 +1,6 @@
 # Attention Head Plots
 
-`plotting/nlp_project.ipynb` plots the attention heads of the trained models. It shows where each head attends, which heads act as previous-token and induction heads, how those heads form during training, how much the model depends on each one, and how they change across model collapse generations. The notebook reads the outputs of `scripts/nlp_project_run.sh` and needs no extra training.
+`plotting/nlp_project.ipynb` plots the attention heads of the trained models. It shows where each head attends, which heads act as previous-token and induction heads, how those heads form during training, how much the model depends on each one, and how they change across model collapse generations. It reads the collapse runs of `scripts/nlp_project_run.sh` and two single-generation runs, `<timestamp>_base` and `<timestamp>_extended`, which train each model once on fresh data with dense checkpoints. The run script does not train these two; the tuned versions in `results/` came from `python -m src.main` with the shared flags, the tuned `--lr`, `--model_variant`, and `--run base` or `--run extended`.
 
 ## Design Decisions
 
@@ -33,7 +33,7 @@ The notebook saves every figure as PNG and PDF in `results/figures/nlp_project/`
 | `<variant>_head_ablations` | accuracy drop when each head is ablated, ordered by head score |
 | `extended_attention_from_yq` | attention at the extended model's next-symbol prediction |
 | `collapse_<...>_heads_per_generation` | both scores per generation, and the last-layer heads in each generation's ACDC circuit when circuit discovery ran |
-| `collapse_<variant>_induction_across_generations` | the strongest induction score per generation for each main collapse condition |
+| `collapse_<variant>_induction_across_generations` | the strongest induction score per generation for each 6-generation collapse condition at T = 1 (`collapse_<variant>_<condition>`); skipped when those runs are missing, as the run script no longer trains them |
 
 ## Validation on the Trained Base Model
 
@@ -45,7 +45,7 @@ The notebook was run on the base and extended models trained by the run script. 
 jupyter lab plotting/nlp_project.ipynb
 ```
 
-Use the `.venv` or `.venv-circuit` kernel and run all cells. The full notebook takes under a minute for the base and extended runs on a laptop CPU. Each collapse run adds one model load per generation. `N_SEQ`, `SEQ_SEED`, and `N_CKPTS_OVER_TRAINING` in the second code cell change the sequences and the number of checkpoints sampled.
+Use the `.venv` kernel and run all cells. The full notebook takes under a minute for the base and extended runs on a laptop CPU. Each collapse run adds one model load per generation. `N_SEQ`, `SEQ_SEED`, and `N_CKPTS_OVER_TRAINING` in the second code cell change the sequences and the number of checkpoints sampled.
 
 ## Limitations
 

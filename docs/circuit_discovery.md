@@ -12,7 +12,7 @@ This extension finds the circuit each generation's model uses for the in-context
 | Extended model | value circuits plus a next-symbol circuit | the symbol head is where the extended model is expected to collapse |
 | Methods | edge attribution patching and ACDC on the same graph and prompts | attribution is fast and ranks every edge, and ACDC is the reference algorithm its approximation is judged against |
 | ACDC implementation | the algorithm run on auto-circuit's patchable model, not the original package | the original package pins PyTorch below 2.0 and TransformerLens 1.6.1, which cannot share an environment with the auto-circuit stack |
-| Toggle | `--circuit-discovery` flag, `CIRCUIT_DISCOVERY` in the run script | runs without the flag need no PyTorch and train exactly as before |
+| Toggle | `--circuit-discovery` flag, on for every run of the run script | runs without the flag need no PyTorch and train exactly as before |
 
 ## Model Conversion
 
@@ -82,18 +82,9 @@ ACDC agrees with attribution on the induction route. At τ = 0.001 the exemplar 
 
 ## Running
 
-auto-circuit needs Python 3.10 or newer. The original `.venv` uses Python 3.9 and stays usable for runs without the flag. A second environment holds both stacks.
+auto-circuit needs Python 3.10 or newer. The setup in the [README](../README.md#setup) installs it and PyTorch into the same `.venv` as JAX. auto-circuit is installed without its dependencies, as its full list pulls in packages for its built-in tasks that can move JAX off the pinned 0.4.26.
 
-```bash
-uv venv .venv-circuit --python 3.11
-source .venv-circuit/bin/activate
-uv pip install -r requirements.txt -r requirements-circuit.txt
-uv pip install --no-deps auto-circuit==1.0.1
-```
-
-`python -m venv` with any Python 3.10 or newer works in place of `uv`. auto-circuit is installed without its dependencies. Its full list pulls in packages for its built-in tasks that can move JAX off the pinned 0.4.26.
-
-`scripts/nlp_project_run.sh` enables discovery for every experiment with `CIRCUIT_DISCOVERY=1`. Set it to 0 to train without PyTorch. A single run takes the flag directly, for example `python -m src.main <COMMON_ARGS> --model_variant base --generations 6 --gen_dataset_size 20000 --circuit-discovery`.
+`scripts/nlp_project_run.sh` enables discovery for every experiment and caps PyTorch at two threads per run (`OMP_NUM_THREADS=2`). When several runs share the CPU, more PyTorch threads than cores slow discovery down by orders of magnitude, while training in JAX is unaffected. A single run takes the flag directly, for example `python -m src.main <COMMON_ARGS> --model_variant base --generations 6 --gen_dataset_size 20000 --circuit-discovery`.
 
 A saved checkpoint can be analysed without training.
 
@@ -101,8 +92,6 @@ A saved checkpoint can be analysed without training.
 python -m src.circuits --checkpoint results/<run>/checkpoints/<iter>.eqx \
   --run_config results/<run>/config.json --out_folder results/<run>/circuit
 ```
-
-`scripts/recompute_circuits.py` reruns circuit discovery and the head-circuit tests for every generation of finished runs from their final checkpoints. It writes `circuits_fixed.h5`, `head_circuit_fixed.h5` and `gen_<g>/circuit_fixed/` next to the originals.
 
 Both methods together take about 40 seconds per model on a laptop CPU. A run with `--circuit-discovery` but without the packages stops before training with an install hint. Training is unaffected by the flag. A two-generation test run produced identical training losses and accuracies with and without it.
 

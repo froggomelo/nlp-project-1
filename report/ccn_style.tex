@@ -181,6 +181,35 @@ We, Lily de Melo, Tawananyasha Kadango, and Gopolang Mohlakola, worked together 
 
 \onecolumn
 \input{checklist.tex}
+
+\newpage
+\section*{Supplementary Material}
+\setcounter{figure}{0}
+\renewcommand{\thefigure}{S\arabic{figure}}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{images/model_figure.pdf}
+  \caption{Base (left) and extended (right) models. The base model predicts the query's label from two symbol--label pairs and the query, and the extended model also predicts the next symbol and its label. Shaded boxes are model outputs; dashed inputs are true tokens during training and the model's own samples when it generates the next generation's data.}
+  \label{fig:models}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/retention_acc.pdf}
+    \caption{Test accuracy of the base model at $T = 3$, mean of three seeds. Each replacement level settles at an accuracy set by its real share, while accumulation stays with the real-only control for about 15 generations before declining. Hollow markers show a mean margin below 1.}
+    \label{fig:retention}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/failure_order.pdf}
+    \caption{Order of failure of the base model under full replacement at $T = 3$, mean of three seeds. The margin halves and the circuit more than triples by generation 1, whereas accuracy and the induction score fall mainly from generation 3.}
+    \label{fig:failure}
+  \end{minipage}
+\end{figure}
+
 \includepdf[pages=-]{ai_dec.pdf}
 
 \end{document}

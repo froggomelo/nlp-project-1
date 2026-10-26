@@ -44,7 +44,7 @@ Each generation starts from the same initialisation by default. `--gen_init cont
 
 ## Running
 
-`scripts/nlp_project_run.sh` takes no parameters and runs every experiment in order: the base model, the extended model, and then five collapse conditions for each variant, each over 6 generations with N = 20,000.
+`scripts/nlp_project_run.sh` runs the collapse experiments of the report with N = 20,000, for both variants and three seeds. They combine the conditions below with a sampling temperature of 1, 3, or 5.
 
 | Condition | Flags | Real share from generation 1 |
 |---|---|---|
@@ -54,9 +54,9 @@ Each generation starts from the same initialisation by default. `--gen_init cont
 | `replace100` | `--gen_replace_frac 1.0` | 0% |
 | `accumulate` | `--gen_mode accumulate` | 1 / (g + 1) |
 
-[experiments.md](experiments.md) lists the sweeps built on these conditions, and [results.md](results.md) reports their results.
+[experiments.md](experiments.md) lists every experiment, and [results.md](results.md) reports their results.
 
-To run one experiment by hand, call `src.main` directly, for example with `--model_variant extended --generations 6 --gen_dataset_size 20000 --gen_replace_frac 0.5`, plus the shared flags in the script's `COMMON_ARGS`.
+To run one experiment by hand, call `src.main` directly, for example with `--model_variant extended --generations 6 --gen_dataset_size 20000 --gen_replace_frac 0.5 --gen_temperature 3`, plus the shared flags in the script's `COMMON_ARGS` and the tuned `--lr` and `--train_iters`.
 
 | Flag | Default | Meaning |
 |---|---|---|
