@@ -13,7 +13,7 @@
 \item {\bf Claims}
     \item[] Question: Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scope?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The abstract states the three main findings of this study, and the introduction the question that they answer, namely that the induction circuit degrades before accuracy once synthetic data carry errors, that the margin of each generation's model sets the error rate of the next generation's data, and that retaining real data delays rather than prevents collapse. Each claim is supported in the Results (Table~\ref{tab:summary}, Figures~\ref{fig:circuits} and~\ref{fig:head}, and Equation~\ref{eq:error}), and the abstract states that errors were forced by raising the sampling temperature, so that the scope of the claims is clear.
+    \item[] Justification: The abstract states the three main findings of this study, and the introduction the question that they answer, namely that, once synthetic data carry errors, the model's confidence and its induction circuit change before its accuracy does, that the margin of each generation's model predicts the error rate of the next generation's data, and that retaining real data limits how far accuracy falls while accumulation delays its decline without stopping the margin's erosion. Each claim is supported in the Results (Table~\ref{tab:summary}, Figures~\ref{fig:circuits} and~\ref{fig:head}, and Equation~\ref{eq:error}), and the abstract states that errors were forced by raising the sampling temperature, so that the scope of the claims is clear.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the abstract and introduction do not include the claims made in the paper.
@@ -25,7 +25,7 @@
 \item {\bf Limitations}
     \item[] Question: Does the paper discuss the limitations of the work performed by the authors?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The Discussion states that errors were forced by raising the sampling temperature rather than arising from a weaker model. In addition, the Results note that circuit sizes are less reliable once the margin falls below 1 (Table~\ref{tab:summary}). This study is also limited to a single two-layer attention-only model and a single synthetic task.
+    \item[] Justification: The Discussion states that errors were forced by raising the sampling temperature rather than arising from a weaker model, and that the training length was fixed while the accumulated pool grew 20-fold. The Results separate the share of the extended model's off-context next symbols caused by the temperature from the share its later models learn. In addition, the Results note that circuit sizes are less reliable once the margin falls below 1 (Table~\ref{tab:summary}). This study is also limited to a single two-layer attention-only model and a single synthetic task.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper has no limitation while the answer No means that the paper has limitations, but those are not discussed in the paper. 
@@ -41,7 +41,7 @@
 \item {\bf Theory Assumptions and Proofs}
     \item[] Question: For each theoretical result, does the paper provide the full set of assumptions and a complete (and correct) proof?
     \item[] Answer: \answerNA{}
-    \item[] Justification: This study contains no theorems. Equation~\ref{eq:error} follows directly from the softmax under the assumption stated before it, namely that the correct label leads each of the four wrong labels by the same margin, and is tested empirically rather than proven.
+    \item[] Justification: This study contains no theorems. Equation~\ref{eq:error} follows directly from the softmax under the approximation stated with it, namely that the measured margin against the other context label holds against all four wrong labels, and is tested empirically rather than proven.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include theoretical results. 
@@ -55,7 +55,7 @@
     \item {\bf Experimental Result Reproducibility}
     \item[] Question: Does the paper fully disclose all the information needed to reproduce the main experimental results of the paper to the extent that it affects the main claims and/or conclusions of the paper (regardless of whether the code and data are provided or not)?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The Methods specify the task, architecture, class splits, pool size, real-to-synthetic ratios, sampling temperatures, tuned learning rates, training length, and Automatic Circuit DisCovery (ACDC) threshold. The remaining settings, namely the Adam optimiser, a batch size of 32, a model width of 64, and the initialisation seed, are fixed in the released run scripts, so that each run can be repeated under the same configuration.
+    \item[] Justification: The Methods specify the task, architecture, class splits, pool size, real-to-synthetic ratios, sampling temperatures, tuned learning rates, training length, and Automatic Circuit DisCovery (ACDC) threshold. The remaining settings, namely the Adam optimiser, a batch size of 32, a model width of 64, and the three seed pairs of the initialisation and training data, are fixed in the released run scripts, so that each run can be repeated under the same configuration.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include experiments.
@@ -144,7 +144,7 @@
 \item {\bf Broader Impacts}
     \item[] Question: Does the paper discuss both potential positive societal impacts and negative societal impacts of the work performed?
     \item[] Answer: \answerNA{}
-    \item[] Justification: This study is foundational research on a small model trained on a synthetic task and has no direct path to harmful applications. Its one implied application, namely using the margin of an identified circuit to flag collapse before accuracy falls, is a positive use and is considered in the Discussion.
+    \item[] Justification: This study is foundational research on a small model trained on a synthetic task and has no direct path to harmful applications. Its one implied application, namely using the margin or an identified circuit to flag collapse before accuracy falls, is a positive use and is considered in the Discussion.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that there is no societal impact of the work performed.
