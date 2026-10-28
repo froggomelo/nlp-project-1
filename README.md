@@ -1,4 +1,4 @@
-# NLP project: model collapse and the induction circuit
+# NLP Project 1: Induction Heads and Model Collapse: How the Real-to-Synthetic Data Ratio Shapes In-Context Learning Circuits
 
 This code trains two-layer transformers on the in-context learning task of Singh et al. (2024), retrains them over generations on data that the previous model relabels, and traces how the induction circuit changes. `src/` holds the training and circuit code, `scripts/` the run scripts, `visuals/` the report figures, `report/` the report, and `data/` the dataset. Results go to `results/`.
 
@@ -46,17 +46,7 @@ Tuning can also run on its own, which writes the chosen settings to `results/<ti
 bash scripts/tune_run.sh
 ```
 
-Settings can be changed in the environment, for example `JOBS=3 SEEDS="5:0" bash scripts/nlp_project_run.sh`:
-
-| Variable | Default | Meaning |
-|---|---|---|
-| `SEEDS` | `"5:0 15:10 25:20"` | `init:train` seed pairs. The first pair keeps the plain run names; the others add `_seed<init>`. |
-| `JOBS` | `5` | Runs at once. |
-| `OMP_NUM_THREADS` | `2` | PyTorch threads per run. Keep `JOBS × OMP_NUM_THREADS` at or below the number of cores, or circuit discovery slows down sharply. |
-| `MAX_ACCUMULATE`, `MIN_FREE_GB` | `2`, `8` | Accumulation runs at once (about 7 GB each), and the free memory needed to start a run. |
-| `TUNE_RUNS` | `1` | `0` skips tuning and reads the settings from the newest tuning log, or from `BASE_LR`, `BASE_ITERS`, `EXTENDED_LR` and `EXTENDED_ITERS` when set. |
-| `TABLE_RUNS`, `FORCED_RUNS` | `1` | `0` skips the Table 1 or margin-formula experiments. |
-| `SKIP_FINISHED` | `1` | `0` retrains runs that already finished. |
+[experiments.md](docs/experiments.md#settings) lists the environment variables that change the seeds, parallelism, memory limits and stages.
 
 ## Outputs and figures
 
@@ -68,11 +58,21 @@ python -I visuals/results_figures.py
 
 draws the report figures into `visuals/figures/` and prints the rows of Table 1. [experiments.md](docs/experiments.md#runs-behind-the-report) maps each table and figure of the report to its runs, and names the earlier scripts that first produced them (kept under the git tag `paper-original-scripts`).
 
-## Ablations
-
-- **Constrained next symbols.** `bash scripts/constrained_run.sh` repeats the extended model's runs of Table 1 (T = 1 and T = 3) with generated next symbols restricted to the context, for the three seeds, into `results/constrained/` (about 8 hours). `python -m scripts.symbol_distribution <runs>` measures each generation's next-symbol distribution, and `python -I visuals/constrained_figures.py` prints the comparison and Table 1 with the constrained runs, and draws the trends. [experiments.md](docs/experiments.md#ablation-constrained-next-symbols) describes the design.
-- **Off-context generation.** `python -m scripts.offcontext_check <runs>` measures how often a generation's model samples next symbols outside the context at a given temperature.
-
 ## Further documentation
 
-[model_collapse.md](docs/model_collapse.md) describes the collapse pipeline, [circuit_discovery.md](docs/circuit_discovery.md) the circuit discovery, and [head_circuit.md](docs/head_circuit.md) the induction-head tests. [Paper_README.md](docs/Paper_README.md) documents the original code of Singh et al. (2024).
+This project:
+
+- [experiments.md](docs/experiments.md): every experiment, its settings and run names, the quick test, the environment settings, and which runs lie behind each table and figure of the report.
+- [results.md](docs/results.md): the results of those experiments.
+- [model_collapse.md](docs/model_collapse.md): the collapse pipeline, its pool metrics and its outputs.
+- [circuit_discovery.md](docs/circuit_discovery.md): circuit discovery with attribution and ACDC.
+- [head_circuit.md](docs/head_circuit.md): the head-to-head tests of the induction circuit.
+- [attention_plots.md](docs/attention_plots.md): the attention-head plots of `plotting/nlp_project.ipynb`.
+- [constrained_ablation.md](docs/constrained_ablation.md): the ablation that restricts the extended model's generated next symbols to the context (run but not analysed in the report); [experiments.md](docs/experiments.md#ablation-constrained-next-symbols) describes how to run it.
+
+The original code of Singh et al. (2024):
+
+- [Paper_README.md](docs/Paper_README.md): the original paper documentation and run scripts.
+- [setup.md](docs/setup.md): the original GPU installation guide.
+- [artificial_optogenetics_guide.md](docs/artificial_optogenetics_guide.md): the model's activation access and manipulation.
+- [example_cache_explanation.md](docs/example_cache_explanation.md): the layout of the activation cache.

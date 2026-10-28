@@ -73,7 +73,7 @@ The T = 3 runs add `--gen_temperature 3` and carry `T3` in their name, as in `co
 | 50%, 90%, and 100% replacement, accumulation | 3 | `collapse_extended_G20_T3ctx_<condition>` |
 | Full replacement, accumulation | 1 | `collapse_extended_G20_T1ctx_<condition>` |
 
-Each condition runs for the three seeds, 18 runs in all, in `results/constrained/`, which covers every extended-model row of Table 1. `ONLY="<condition> ..."` runs just the named conditions. Each run reuses the generation 0 model of the matching unconstrained run through `--gen0_from`, so both arms start from the same checkpoint. `real_only` samples nothing, so the unconstrained `collapse_extended_G20_real_only` runs serve as its control.
+Each condition runs for the three seeds, 18 runs in all (about 8 hours), in `results/constrained/`, which covers every extended-model row of Table 1. `ONLY="<condition> ..."` runs just the named conditions. Each run reuses the generation 0 model of the matching unconstrained run through `--gen0_from`, so both arms start from the same checkpoint. `real_only` samples nothing, so the unconstrained `collapse_extended_G20_real_only` runs serve as its control.
 
 `scripts/symbol_distribution.py` then measures every generation's next-symbol distribution on 5,000 held-out real prompts: the unmasked probability on the context classes, and the distribution renormalised over them with the true query label supplied (its entropy, its KL divergence from the uniform distribution over the distinct context classes, and its preference by position and for the query's class), as well as fully autoregressive generation with and without the constraint. It writes `results/constrained/analysis/<run>.tsv`. `python -I visuals/constrained_figures.py` prints the generation 19 comparison and the LaTeX rows of Table 1 with the extended model's runs constrained (the base model has no next symbol, so its columns are unchanged), and draws the trends into `visuals/figures/constrained_trends.pdf`.
 
@@ -99,7 +99,21 @@ Each condition runs for the three seeds, 18 runs in all, in `results/constrained
 nohup bash scripts/nlp_project_run.sh > results/run.log 2>&1 &
 ```
 
-From scratch, the script takes about 20 hours with five runs at once and needs about 85 GB of disk. The [README](../README.md#running-the-experiments) lists the environment variables that change seeds, parallelism, and stages.
+From scratch, the script takes about 20 hours with five runs at once and needs about 85 GB of disk.
+
+### Settings
+
+Settings can be changed in the environment, for example `JOBS=3 SEEDS="5:0" bash scripts/nlp_project_run.sh`. `scripts/tune_run.sh` and `scripts/quick_test.sh` read the same `JOBS`, `OMP_NUM_THREADS`, `MAX_ACCUMULATE`, `MIN_FREE_GB`, and `SKIP_FINISHED`.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SEEDS` | `"5:0 15:10 25:20"` | `init:train` seed pairs. The first pair keeps the plain run names; the others add `_seed<init>`. |
+| `JOBS` | `5` | Runs at once. |
+| `OMP_NUM_THREADS` | `2` | PyTorch threads per run. Keep `JOBS × OMP_NUM_THREADS` at or below the number of cores, or circuit discovery slows down sharply. |
+| `MAX_ACCUMULATE`, `MIN_FREE_GB` | `2`, `8` | Accumulation runs at once (about 7 GB each), and the free memory needed to start a run. |
+| `TUNE_RUNS` | `1` | `0` skips tuning and reads the settings from the newest tuning log, or from `BASE_LR`, `BASE_ITERS`, `EXTENDED_LR` and `EXTENDED_ITERS` when set. |
+| `TABLE_RUNS`, `FORCED_RUNS` | `1` | `0` skips the Table 1 or margin-formula experiments. |
+| `SKIP_FINISHED` | `1` | `0` retrains runs that already finished. |
 
 ## Quick Test
 
@@ -138,6 +152,12 @@ Every number and figure in the report comes from the runs below. Their `config.j
 | Margin formula (r = 0.994) | `collapse_<variant>_T<T>_<condition>`, first seed | `scripts/nlp_project_run.sh`, stage 3 |
 | Context share of the extended model's next symbols | `collapse_extended_G20_T3_replace100` | `scripts/offcontext_check.py` |
 | Figures and the rows of Table 1 | all of the above | `python -I visuals/results_figures.py` |
+
+The context share of the extended model's next symbols comes from `scripts/offcontext_check.py`, which regenerates a run's pool with the model of each requested generation at each requested temperature and reports how often generated next symbols fall outside the context, and how much probability the symbol head gives the context symbols:
+
+```bash
+python -m scripts.offcontext_check results/*_collapse_extended_G20_T3_replace100* --generations 0 19 --temperatures 1 3
+```
 
 The report states the margin formula's fit for the first seed only, so stage 3 of the script also runs the other two seeds, which the report does not use.
 
