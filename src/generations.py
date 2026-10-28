@@ -63,12 +63,26 @@ def _choose(key, logits, sampling, temperature):
   return jax.random.categorical(key, logits / temperature, axis=-1)
 
 
+def context_mask(context_symbols, num_classes):
+  '''[rows, num_classes] booleans, True for each class that occurs in the row's
+  context. A class that occurs twice is simply marked twice.'''
+  rows = jnp.arange(context_symbols.shape[0])[:, None]
+  return jnp.zeros((context_symbols.shape[0], num_classes), dtype=bool).at[rows, context_symbols].set(True)
+
+
+def mask_to_context(logits, context_symbols):
+  '''Sets the logits of classes absent from the context to -inf, so softmax(logits / T)
+  renormalises over the context classes and keeps the model's preferences among them.'''
+  return jnp.where(context_mask(context_symbols, logits.shape[-1]), logits, -jnp.inf)
+
+
 def generate_sequences(model, fwd_fn, prompts, key, opts, data, exemplar_inds, num_train_classes):
   '''Regenerates the targets of `prompts` with `model`, one token at a time.
 
   The context and query (the prompt) are kept. Base: sample the query's value.
   Extended: sample the query's value, feed it in, sample the next symbol's
-  class (restricted to train classes), give it a random train exemplar, feed
+  class (restricted to train classes, and with gen_symbol_constraint='context'
+  to the classes in context), give it a random train exemplar, feed
   it in, then sample that symbol's value. The model is causal, so later
   placeholder tokens do not affect earlier logits.
   '''
@@ -85,6 +99,9 @@ def generate_sequences(model, fwd_fn, prompts, key, opts, data, exemplar_inds, n
       _, symbol_logits = _logits(model, fwd_fn, x, y, ks[2])
       # Only train classes may be generated, so val/test classes never leak into training
       symbol_logits = symbol_logits[:, -1].at[:, num_train_classes:].set(-jnp.inf)
+      if getattr(opts, 'gen_symbol_constraint', 'none') == 'context':
+        # Only the context items (not the query or the prompt's real next symbol) are allowed
+        symbol_logits = mask_to_context(symbol_logits, s[:, :-2])
       next_symbol = choose(ks[3], symbol_logits)
       exemplar = exemplar_inds[jax.random.randint(ks[4], (x.shape[0],), 0, len(exemplar_inds))]
       x = x.at[:, -1].set(data[next_symbol, exemplar])

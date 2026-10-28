@@ -124,6 +124,9 @@ def create_parser():
   parser.add_argument('--gen_sampling', default='sample', type=str, choices=['sample', 'argmax'], help="How generated tokens are chosen: sample from softmax(logits / gen_temperature), or argmax (ablation).")
   parser.add_argument('--gen_temperature', default=1.0, type=float, help="Sampling temperature for generated tokens.")
   parser.add_argument('--gen_init', default='fresh', type=str, choices=['fresh', 'continue'], help="Whether each generation trains from a fresh init (same init seed) or continues from the previous generation's weights.")
+  parser.add_argument('--gen_symbol_constraint', default='none', type=str, choices=['none', 'context'], help="Extended variant only. 'none': generated next symbols are sampled from all train classes. 'context': the symbol head's logits outside the distinct symbols of the context are masked before sampling, so generated next symbols always occur in context; the model's preferences among them and the temperature are kept.")
+  parser.add_argument('--resume', action='store_true', help="Continue an interrupted collapse run in place (pass --raw_name and its folder name as --run). Each generation whose final checkpoint and circuit results exist is not retrained: its model is loaded, its pool is regenerated and checked against the saved pool_meta.npz, and no rows are appended twice.")
+  parser.add_argument('--gen0_from', default=None, type=str, help="A finished collapse run folder whose generation 0 model is reused instead of trained (its final gen_0 checkpoint and gen_0/log.h5 are copied). Every setting that affects generation 0 must match this run's.")
 
   # Circuit discovery params (see docs/circuit_discovery.md)
   parser.add_argument('--circuit-discovery', '--circuit_discovery', dest='circuit_discovery', action='store_true', help="If specified, discovers circuits of each generation's trained model with auto-circuit after it trains. Needs the extra dependencies in requirements-circuit.txt (Python >= 3.10).")
@@ -153,6 +156,10 @@ def check_opts(opts):
     assert opts.gen_dataset_size is not None, 'Recursive generations need a fixed pool (--gen_dataset_size)'
   assert 0 <= opts.gen_replace_frac <= 1
   assert opts.gen_temperature > 0
+  if opts.gen_symbol_constraint != 'none':
+    assert opts.model_variant == 'extended', 'Only the extended variant generates next symbols'
+  if opts.gen0_from is not None:
+    assert opts.gen_dataset_size is not None, '--gen0_from reuses generation 0 of a collapse run'
   if opts.model_variant == 'extended':
     assert not opts.not_causal, 'Extended variant must be causal, otherwise the query position sees its own label'
     assert not opts.assign_query_label_random, 'assign_query_label_random is not supported by the extended variant'

@@ -69,6 +69,14 @@ To run one experiment by hand, call `src.main` directly, for example with `--mod
 | `--gen_sampling` | `sample` | `sample` or `argmax` |
 | `--gen_temperature` | `1.0` | sampling temperature T |
 | `--gen_init` | `fresh` | `fresh` or `continue` |
+| `--gen_symbol_constraint` | `none` | `context` masks the symbol head's logits outside the distinct context classes before sampling, extended model only |
+| `--gen0_from` | unset | a finished collapse run whose generation 0 model is reused instead of trained |
+
+### Constrained Next Symbols
+
+With `--gen_symbol_constraint context`, generation masks every class that does not occur among the context items (not the query, and not the prompt's real next symbol) to −∞ after the train-class restriction, then samples from softmax(logits / T). The probabilities are renormalised over the context classes, the model's preferences among them are kept, and the temperature applies after masking. A class that occurs twice in the context counts once. Only the next-symbol choice is constrained: the query label and the next label are sampled from the value head as before. The real-data generator, training, and evaluation are unchanged. With the default `none`, generation is bit-for-bit identical to runs made before the flag existed.
+
+`--gen0_from <run>` copies the final generation 0 checkpoint and training log of a finished run instead of training generation 0, after checking that every setting that affects generation 0 matches. Later generations then reproduce that run exactly when the other settings also match, so a constrained run and its unconstrained counterpart start from the same model.
 
 ## Outputs
 

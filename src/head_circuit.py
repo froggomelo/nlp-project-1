@@ -455,6 +455,14 @@ def run_head_circuit(model, opts, prompts, eval_prompts, out_folder, data, exemp
           ' '.join('{} R {:.0%}'.format(k, v['recovery']) for k, v in res['circuits'].items() if not k.endswith('_edges')))
     row.update(h5_row(target, res))
   if h5_file is not None:
+    # A measure missing in this generation (e.g. an ACDC circuit with no edges) is
+    # recorded as NaN, so every column keeps one row per generation
+    if os.path.exists(h5_file):
+      import h5py
+      with h5py.File(h5_file, 'r') as f:
+        names = []
+        f.visititems(lambda n, o: names.append(n) if isinstance(o, h5py.Dataset) else None)
+      row.update({n: np.nan for n in names if n != 'gen' and n not in row})
     generations.append_to_h5(h5_file, gen, row, {})
   return row
 
