@@ -126,20 +126,21 @@ def save(fig, out, name):
 
 
 def failure_order(results, out, last=5):
-  # Mean over seeds of the first generations of full replacement at T = 3, the margin
-  # relative to each seed's own generation 0
+  # The first generations of full replacement at T = 3 for every seed, the margin
+  # relative to each seed's own generation 0; the mean as the line, the range shaded
   ms = [run_metrics(r) for r in seed_runs(results, 'collapse_base_G20_T3_replace100')]
-  mean = lambda f: np.mean([f(m)[:last + 1] for m in ms], axis=0)
+  per_seed = lambda f: np.array([f(m)[:last + 1] for m in ms])
   gens = np.arange(last + 1)
-  series = {'accuracy': mean(lambda m: m['accuracy']),
-            'margin': mean(lambda m: m['margin'] / m['margin'][0]),
-            'induction': mean(lambda m: m['induction']),
-            'edges': mean(lambda m: m['edges'] / N_EDGES)}
+  series = {'accuracy': per_seed(lambda m: m['accuracy']),
+            'margin': per_seed(lambda m: m['margin'] / m['margin'][0]),
+            'induction': per_seed(lambda m: m['induction']),
+            'edges': per_seed(lambda m: m['edges'] / N_EDGES)}
   fig, ax = plt.subplots(figsize=(3.3, 2.3))
-  for key, y in series.items():
+  for key, ys in series.items():
     colour, _ = MEASURES[key]
-    ax.plot(gens, y, color=colour, lw=2, marker='o', ms=4, zorder=3)
-  end_labels(ax, np.array([y[-1] for y in series.values()]),
+    ax.fill_between(gens, ys.min(0), ys.max(0), color=colour, alpha=0.18, lw=0, zorder=2)
+    ax.plot(gens, ys.mean(0), color=colour, lw=2, marker='o', ms=4, zorder=3)
+  end_labels(ax, np.array([ys.mean(0)[-1] for ys in series.values()]),
              [MEASURES[k][1] for k in series], gens[-1] + 0.2, 0.075)
   ax.set_xlim(-0.2, gens[-1] + 2.6)
   ax.set_xticks(gens)
@@ -153,15 +154,17 @@ def retention(results, out, key, name, ylabel, ylim):
   for cond, (colour, label, ls) in CONDITIONS.items():
     # real only never samples, so its T = 1 run is the control at every temperature
     run = 'collapse_base_G20_real_only' if cond == 'real_only' else 'collapse_base_G20_T3_' + cond
-    # Mean over seeds; hollow markers where the mean margin is below 1
+    # Mean over seeds with the range shaded; hollow markers where the mean margin is below 1
     ms = [run_metrics(r) for r in seed_runs(results, run)]
-    m = {k: np.mean([x[k] for x in ms], axis=0) for k in (key, 'margin')}
-    y = m[key] / (N_EDGES if key == 'edges' else 1)
+    ys = np.array([x[key] for x in ms]) / (N_EDGES if key == 'edges' else 1)
+    y = ys.mean(0)
+    margin = np.mean([x['margin'] for x in ms], axis=0)
     gens = np.arange(len(y))
+    ax.fill_between(gens, ys.min(0), ys.max(0), color=colour, alpha=0.18, lw=0, zorder=2)
     # The dashed control sits on top, as accumulation runs along the same values
     ax.plot(gens, y, color=colour, lw=2, ls=ls, zorder=5 if cond == 'real_only' else 3)
     # Hollow markers where the margin is below 1: ACDC recovery is undefined there
-    weak = m['margin'] < 1
+    weak = margin < 1
     ax.scatter(gens[~weak], y[~weak], s=16, color=colour, zorder=4, linewidths=0)
     ax.scatter(gens[weak], y[weak], s=16, facecolor='white', edgecolor=colour, lw=1.2, zorder=4)
     ends.append((y[-1], label))
@@ -225,7 +228,7 @@ CIRCUIT_PANELS = [  # (run, generation, title); full replacement, one row per te
 # The two moments of the report: the circuit as formed, and tripled while accuracy holds
 TWO_PANELS = [
   ('collapse_base_G20_replace100', 0, '(a) Generation 0'),
-  ('collapse_base_G20_T3_replace100', 1, '(b) $T = 3$, 100% replaced, gen. 1'),
+  ('collapse_base_G20_T3_replace100', 1, '(b) $\\tau = 3$, 100% replaced, gen. 1'),
 ]
 # The same four moments under accumulation instead of full replacement
 ACCUMULATE_PANELS = [
@@ -313,7 +316,7 @@ def head_metrics(run):
 def induction_head(results, out):
   '''Match (retrieval) against copy (direct effect) of the induction head at T = 3,
   each as a fraction of its generation 0 value, so both share one axis.'''
-  fig, ax = plt.subplots(figsize=(3.3, 1.15))
+  fig, ax = plt.subplots(figsize=(3.3, 0.9))
   conditions = [('collapse_base_G20_T3_replace100', '#2a78d6', '100% replaced'),
                 ('collapse_base_G20_T3_accumulate', '#eb6834', 'accumulate')]
   for run, colour, _ in conditions:
@@ -384,22 +387,6 @@ def summary_table(results):
     lines.append('{} & {:.0f}\\% & {} & {} & {} \\\\'.format(
       label, 100 * b[0]['real_frac'][-1], cell([m['accuracy'][-1] for m in b], 2),
       margin_edges(b), margin_edges(e)))
-  return lines
-
-
-def table(results):
-  rows = [('Real only', 'collapse_base_real_only', 'collapse_extended_real_only'),
-          ('50\\% replaced', 'collapse_base_T3_replace50', 'collapse_extended_T3_replace50'),
-          ('90\\% replaced', 'collapse_base_T3_replace90', 'collapse_extended_T3_replace90'),
-          ('100\\% replaced', 'collapse_base_T3_replace100', 'collapse_extended_T3_replace100'),
-          ('Accumulate', 'collapse_base_T3_accumulate', 'collapse_extended_T3_accumulate')]
-  lines = []
-  for label, base, ext in rows:
-    b, e = run_metrics(find_run(results, base)), run_metrics(find_run(results, ext))
-    edges = '{:.0f}'.format(b['edges'][-1]) + ('$^\\dagger$' if b['margin'][-1] < 1 else '')
-    lines.append('{} & {:.0f}\\% & {:.2f} & {:.2f} & {:.1f} & {} & {:.2f} & {:.2f} \\\\'.format(
-      label, 100 * b['real_frac'][-1], b['label_err'][-1], b['accuracy'][-1], b['margin'][-1],
-      edges, b['induction'][-1], e['accuracy'][-1]))
   return lines
 
 
