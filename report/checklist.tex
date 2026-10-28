@@ -13,7 +13,7 @@
 \item {\bf Claims}
     \item[] Question: Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scope?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The abstract states the three main findings of this study, and the introduction the question that they answer, namely that, once synthetic data carry errors, the model's confidence and its induction circuit change before its accuracy does, that the margin of each generation's model predicts the error rate of the next generation's data, and that retaining real data limits how far accuracy falls while accumulation delays its decline without stopping the margin's erosion. Each claim is supported in the Results (Table~\ref{tab:summary}, Figures~\ref{fig:circuits} and~\ref{fig:head}, and the fit of Equation~\ref{eq:error}), and the abstract states that errors were forced by raising the sampling temperature, so that the scope of the claims is clear.
+    \item[] Justification: The abstract states the three main findings, and the introduction the question they answer, namely that, once synthetic data carry errors, the model's confidence and induction circuit change before its accuracy does, that each generation's margin predicts the error rate of the next generation's data, and that retaining real data limits how far accuracy falls while accumulation delays its decline without stopping the margin's erosion. Each claim is supported in the Results (Table~\ref{tab:summary}, Figures~\ref{fig:circuits} and~\ref{fig:head}, and Equation~\ref{eq:error}), and the abstract states that errors were forced through temperature, which bounds their scope.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the abstract and introduction do not include the claims made in the paper.
@@ -25,7 +25,7 @@
 \item {\bf Limitations}
     \item[] Question: Does the paper discuss the limitations of the work performed by the authors?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The Discussion states that errors were forced by raising the sampling temperature rather than arising from a weaker model, and that the training length was fixed while the accumulated pool grew 20-fold. The Results attribute the extended model's off-context next symbols to the raised temperature and measure, at $\tau = 1$, how far later models learn them. In addition, the Results note that circuit sizes are less reliable once the margin falls below 1 (Table~\ref{tab:summary}). This study is also limited to a single two-layer attention-only model and a single synthetic task.
+    \item[] Justification: The Discussion states that errors were forced through temperature rather than a weaker model, that the training length was fixed while the accumulated pool grew 20-fold, and that the extended model's next symbol could instead be restricted to the two context symbols. The Results measure how far later extended models learn off-context next symbols, and Table~\ref{tab:summary} marks circuit sizes as less reliable once the margin falls below 1. Because of the two-page limit, the paper does not state that this study is also limited to one two-layer attention-only model and one synthetic task.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper has no limitation while the answer No means that the paper has limitations, but those are not discussed in the paper. 
@@ -41,7 +41,7 @@
 \item {\bf Theory Assumptions and Proofs}
     \item[] Question: For each theoretical result, does the paper provide the full set of assumptions and a complete (and correct) proof?
     \item[] Answer: \answerNA{}
-    \item[] Justification: This study contains no theorems. Equation~\ref{eq:error} follows directly from the softmax under the approximation stated with it, namely that the measured margin against the other context label holds against all four wrong labels, and is tested empirically rather than proven.
+    \item[] Justification: This study contains no theorems. Equation~\ref{eq:error} follows from the softmax under the approximation stated with it, that the margin over the other context label holds over each of the four wrong labels, and is tested empirically rather than proven.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include theoretical results. 
@@ -55,7 +55,7 @@
     \item {\bf Experimental Result Reproducibility}
     \item[] Question: Does the paper fully disclose all the information needed to reproduce the main experimental results of the paper to the extent that it affects the main claims and/or conclusions of the paper (regardless of whether the code and data are provided or not)?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The Methods specify the task, architecture, class splits, pool size, real-to-synthetic ratios, sampling temperatures, tuned learning rates, training length, and Automatic Circuit DisCovery (ACDC) threshold. The remaining settings, namely the Adam optimiser, a batch size of 32, a model width of 64, and the three seed pairs of the initialisation and training data, are fixed in the released run scripts, so that each run can be repeated under the same configuration.
+    \item[] Justification: The Methods specify the settings that the main claims depend on, namely the task, architecture, class splits, pool size, real-to-synthetic ratios, sampling temperatures, tuned learning rates, training length, and Automatic Circuit DisCovery (ACDC) threshold. The Adam optimiser, a batch size of 32, a model width of 64, and the initialisation and training seed pairs (5, 0), (15, 10), and (25, 20) were left out of the paper because of the two-page limit, and are fixed in the released run scripts.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include experiments.
@@ -75,7 +75,7 @@
 \item {\bf Open access to data and code}
     \item[] Question: Does the paper provide open access to the data and code, with sufficient instructions to faithfully reproduce the main experimental results, as described in supplemental material?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The code, the preprocessed Omniglot features, and the scripts that run every experiment and produce every figure are available at \url{https://github.com/froggomelo/nlp-project-1}. The repository's README specifies the environment and the exact command for each experiment.
+    \item[] Justification: The code, the preprocessed Omniglot features, and the scripts for every experiment and figure are available at \url{https://github.com/froggomelo/nlp-project-1}, whose README gives the environment and the command for each experiment.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that paper does not include experiments requiring code.
@@ -92,7 +92,7 @@
 \item {\bf Experimental Setting/Details}
     \item[] Question: Does the paper specify all the training and test details (e.g., data splits, hyperparameters, how they were chosen, type of optimizer, etc.) necessary to understand the results?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The Methods state that the model trains on 50 Omniglot classes and is tested on 100 unseen classes, so that test accuracy reflects ICL alone. The learning rate and training length were tuned per model on 1,473 separate validation classes, so that the test classes remain unseen during tuning, and the chosen values are reported.
+    \item[] Justification: The Methods state the class splits, namely 50 Omniglot training classes, 1,473 validation classes on which the learning rate and training length were tuned, and 100 unseen test classes, so that test accuracy reflects ICL alone. The Adam optimiser, the batch size of 32, and the model width of 64 are not needed to understand the results, and were left out of the paper because of the two-page limit but are fixed in the released run scripts.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include experiments.
@@ -103,7 +103,7 @@
 \item {\bf Experiment Statistical Significance}
     \item[] Question: Does the paper report error bars suitably and correctly defined or other appropriate information about the statistical significance of the experiments?
     \item[] Answer: \answerYes{}
-    \item[] Justification: Each condition of Table~\ref{tab:summary} was run with three seeds of the initialisation and training data, and the table reports the mean $\pm$ the standard deviation over seeds. Figure~\ref{fig:head} shades the range across seeds, Figures~\ref{fig:retention} and~\ref{fig:failure} show three-seed means, the text gives means and, where a claim depends on it, the worst seed, and the fit of Equation~\ref{eq:error} is reported as a correlation and an average absolute gap across every generation and condition.
+    \item[] Justification: Table~\ref{tab:summary} reports the mean $\pm$ the standard deviation over three seeds of the initialisation and training data. Figures~\ref{fig:head}, \ref{fig:retention}, and~\ref{fig:failure} show the three-seed mean with the range across seeds shaded, the text reports means, and the fit of Equation~\ref{eq:error} is reported as a correlation and an average absolute gap across every generation and condition.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include experiments.
@@ -119,8 +119,8 @@
 
 \item {\bf Experiments Compute Resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
-    \item[] Answer: \answerYes{}
-    \item[] Justification: Every experiment was run on the CPU of a single desktop computer (AMD Ryzen 7 7800X3D, 32 GB of RAM). Training on one million sequences took approximately 2.2 minutes. The full run script trains 1,128 models over three seeds, namely 840 for Table~\ref{tab:summary} (14 runs of 20 generations) and 288 for the fit of Equation~\ref{eq:error} (16 runs of 6 generations), which amounts to roughly 41 hours of training, with tuning and circuit discovery adding to this. Development runs not reported in this study used additional compute of a similar scale.
+    \item[] Answer: \answerNo{}
+    \item[] Justification: The compute was left out of the paper because of the two-page limit. Every experiment ran on the CPU of a single desktop computer (AMD Ryzen 7 7800X3D, 32 GB of RAM), where training on one million sequences took about 2.2 minutes. The full run script trains 1,128 models over three seeds, namely 840 for Table~\ref{tab:summary} (14 runs of 20 generations) and 288 for Equation~\ref{eq:error} (16 runs of 6 generations), or roughly 41 hours of training before tuning and circuit discovery. Development runs not reported here used compute of a similar scale.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include experiments.
@@ -144,7 +144,7 @@
 \item {\bf Broader Impacts}
     \item[] Question: Does the paper discuss both potential positive societal impacts and negative societal impacts of the work performed?
     \item[] Answer: \answerNA{}
-    \item[] Justification: This study is foundational research on a small model trained on a synthetic task and has no direct path to harmful applications. Its one implied application, namely using the margin or an identified circuit to flag collapse before accuracy falls, is a positive use and is considered in the Discussion.
+    \item[] Justification: This study is foundational research on a small model trained on a synthetic task and has no direct path to harmful applications. Its one implied application, using the margin or circuit to flag collapse before accuracy falls, is a positive use considered in the Discussion.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that there is no societal impact of the work performed.
