@@ -420,7 +420,9 @@ def run_head_circuit(model, opts, prompts, eval_prompts, out_folder, data, exemp
   folder) when present.
   '''
   os.makedirs(out_folder, exist_ok=True)
-  device = t.device('cuda' if t.cuda.is_available() else 'cpu')
+  # CPU even with a GPU: auto-circuit keeps its answer tensors on the CPU, and the
+  # report's circuits were found on the CPU.
+  device = t.device('cpu')
   extended = opts.model_variant == 'extended'
   at_query = circuits.value_at_query(opts)
   targets = {'value_' + c: ('label', partial(circuits.value_pairs, model, prompts, extended, c, at_query),

@@ -378,7 +378,9 @@ def run_circuit_discovery(model, opts, prompts, out_folder, data, exemplar_inds,
   if given.
   '''
   os.makedirs(out_folder, exist_ok=True)
-  device = t.device('cuda' if t.cuda.is_available() else 'cpu')
+  # CPU even with a GPU: auto-circuit keeps its answer tensors on the CPU, and the
+  # report's circuits were found on the CPU.
+  device = t.device('cpu')
   extended = opts.model_variant == 'extended'
   bs = getattr(opts, 'circuit_bs', 64)
   acdc_threshold = getattr(opts, 'circuit_acdc_threshold', ACDC_THRESHOLD)

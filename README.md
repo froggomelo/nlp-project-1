@@ -10,11 +10,12 @@ Run all commands from the project folder, with Python 3.10–3.12, on CPU.
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
 python -m pip install -r requirements-circuit.txt
 python -m pip install --no-deps auto-circuit==1.0.1
 ```
 
-Activate the environment again with `source .venv/bin/activate` in every new terminal.
+The `torch` line installs the CPU build of PyTorch, which saves about 4 GB of GPU libraries that the default build from PyPI brings in and the code never uses. Activate the environment again with `source .venv/bin/activate` in every new terminal.
 
 ## Quick test
 
