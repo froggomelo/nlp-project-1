@@ -75,7 +75,7 @@
 \item {\bf Open access to data and code}
     \item[] Question: Does the paper provide open access to the data and code, with sufficient instructions to faithfully reproduce the main experimental results, as described in supplemental material?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The code, the preprocessed Omniglot features, and the scripts for every experiment and figure are available at \url{https://github.com/froggomelo/nlp-project-1}, whose README gives the environment and the command for each experiment.
+    \item[] Justification: The code, preprocessed Omniglot features, and scripts for every experiment and figure are available at \url{https://github.com/froggomelo/nlp-project-1}, whose README gives the environment and each experiment's command.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that paper does not include experiments requiring code.
@@ -103,7 +103,7 @@
 \item {\bf Experiment Statistical Significance}
     \item[] Question: Does the paper report error bars suitably and correctly defined or other appropriate information about the statistical significance of the experiments?
     \item[] Answer: \answerYes{}
-    \item[] Justification: Table~\ref{tab:summary} reports the mean $\pm$ the standard deviation over three seeds of the initialisation and training data. Figures~\ref{fig:head}, \ref{fig:retention}, and~\ref{fig:failure} show the three-seed mean with the range across seeds shaded, the text reports means, and the fit of Equation~\ref{eq:error} is reported as a correlation and an average absolute gap across every generation and condition.
+    \item[] Justification: Table~\ref{tab:summary} reports the mean $\pm$ standard deviation over three seeds of the initialisation and training data, Figures~\ref{fig:head}, \ref{fig:retention}, and~\ref{fig:failure} shade the seed range around the mean, and the fit of Equation~\ref{eq:error} is given as a correlation and a mean absolute gap.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include experiments.
@@ -120,7 +120,7 @@
 \item {\bf Experiments Compute Resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
     \item[] Answer: \answerNo{}
-    \item[] Justification: The compute was left out of the paper because of the two-page limit. Every experiment ran on the CPU of a single desktop computer (AMD Ryzen 7 7800X3D, 32 GB of RAM), where training on one million sequences took about 2.2 minutes. The full run script trains 1,128 models over three seeds, namely 840 for Table~\ref{tab:summary} (14 runs of 20 generations) and 288 for Equation~\ref{eq:error} (16 runs of 6 generations), or roughly 41 hours of training before tuning and circuit discovery. Development runs not reported here used compute of a similar scale.
+    \item[] Justification: The compute was left out of the paper because of the two-page limit. Every experiment ran on the CPU of one desktop computer (AMD Ryzen 7 7800X3D, 32 GB of RAM), where training on one million sequences took about 2.2 minutes. The full run script trains 1,128 models over three seeds, namely 840 for Table~\ref{tab:summary} (14 runs of 20 generations) and 288 for Equation~\ref{eq:error} (16 runs of 6 generations), or roughly 41 hours before tuning and circuit discovery. The Discussion's constrained runs add 342 models (18 runs of 19 generations), or about 12.5 hours, and development runs used similar compute.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include experiments.
@@ -144,7 +144,7 @@
 \item {\bf Broader Impacts}
     \item[] Question: Does the paper discuss both potential positive societal impacts and negative societal impacts of the work performed?
     \item[] Answer: \answerNA{}
-    \item[] Justification: This study is foundational research on a small model trained on a synthetic task and has no direct path to harmful applications. Its one implied application, using the margin or circuit to flag collapse before accuracy falls, is a positive use considered in the Discussion.
+    \item[] Justification: This study is foundational research on a small model and a synthetic task, with no direct path to harmful applications. Its one implied application, flagging collapse before accuracy falls, is a positive use considered in the Discussion.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that there is no societal impact of the work performed.
