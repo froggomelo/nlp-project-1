@@ -25,7 +25,7 @@
 \item {\bf Limitations}
     \item[] Question: Does the paper discuss the limitations of the work performed by the authors?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The Discussion states that errors were forced through temperature rather than a weaker model, that the training length was fixed while the accumulated pool grew 20-fold, and that a version restricting the extended model's next symbols to the context has been run but not yet analysed. The Results measure how far later extended models learn off-context next symbols, and Table~\ref{tab:summary} marks circuit sizes as less reliable once the margin falls below 1. Because of the two-page limit, the paper does not state that this study is also limited to one two-layer attention-only model and one synthetic task.
+    \item[] Justification: The Discussion states that errors were forced through temperature rather than a weaker model, that the training length was fixed while the accumulated pool grew 20-fold, and that the extended model's next symbol could instead be restricted to the two context symbols. The Results measure how far later extended models learn off-context next symbols, and Table~\ref{tab:summary} marks circuit sizes as less reliable once the margin falls below 1. Because of the two-page limit, the paper does not state that this study is also limited to one two-layer attention-only model and one synthetic task.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper has no limitation while the answer No means that the paper has limitations, but those are not discussed in the paper. 
@@ -120,7 +120,7 @@
 \item {\bf Experiments Compute Resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
     \item[] Answer: \answerNo{}
-    \item[] Justification: The compute was left out of the paper because of the two-page limit. Every experiment ran on the CPU of one desktop computer (AMD Ryzen 7 7800X3D, 32 GB of RAM), where training on one million sequences took about 2.2 minutes. The full run script trains 1,128 models over three seeds, namely 840 for Table~\ref{tab:summary} (14 runs of 20 generations) and 288 for Equation~\ref{eq:error} (16 runs of 6 generations), or roughly 41 hours before tuning and circuit discovery. The Discussion's constrained runs add 342 models (18 runs of 19 generations), or about 12.5 hours, and development runs used similar compute.
+    \item[] Justification: The compute was left out of the paper because of the two-page limit. Every experiment ran on the CPU of one desktop computer (AMD Ryzen 7 7800X3D, 32 GB of RAM), where training on one million sequences took about 2.2 minutes. The full run script trains 1,128 models over three seeds, namely 840 for Table~\ref{tab:summary} (14 runs of 20 generations) and 288 for Equation~\ref{eq:error} (16 runs of 6 generations), or roughly 41 hours before tuning and circuit discovery. Development runs not reported here used compute of a similar scale.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer NA means that the paper does not include experiments.
