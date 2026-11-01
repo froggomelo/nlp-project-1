@@ -90,6 +90,21 @@ only trains what is missing. Each run's output goes to
 results/<timestamp>_<name>.log, and results/<timestamp>_summary.log lists
 every run as OK, FAILED or SKIPPED.
 
+nohup keeps the script running after the terminal closes, and & runs it in
+the background. The shell then prints the script's process ID, for example
+"[1] 588874". To follow its progress (Ctrl+C stops only the viewing, not the
+runs):
+
+    tail -f results/run.log
+
+To stop it, kill its whole process group: the process ID with a minus sign in
+front, so that the runs it started stop as well.
+
+    kill -- -588874
+
+"pgrep -af src.main" then lists any training process still running, and
+prints nothing once all have stopped.
+
 Tuning can also run on its own, which writes the chosen settings to
 results/<timestamp>_tuning.log:
 
