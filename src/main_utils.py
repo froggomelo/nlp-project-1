@@ -129,7 +129,7 @@ def create_parser():
   parser.add_argument('--gen0_from', default=None, type=str, help="A finished collapse run folder whose generation 0 model is reused instead of trained (its final gen_0 checkpoint and gen_0/log.h5 are copied). Every setting that affects generation 0 must match this run's.")
 
   # Circuit discovery params (see docs/circuit_discovery.md)
-  parser.add_argument('--circuit-discovery', '--circuit_discovery', dest='circuit_discovery', action='store_true', help="If specified, discovers circuits of each generation's trained model with auto-circuit after it trains. Needs the extra dependencies in requirements-circuit.txt (Python >= 3.10).")
+  parser.add_argument('--circuit-discovery', '--circuit_discovery', dest='circuit_discovery', action='store_true', help="If specified, discovers circuits of each generation's trained model with auto-circuit after it trains. Needs the circuit-discovery packages in requirements.txt and auto-circuit (Python >= 3.10).")
   parser.add_argument('--circuit_n_prompts', default=512, type=int, help="Number of fixed real sequences used for circuit discovery. Half are used to score edges, half to measure faithfulness.")
   parser.add_argument('--circuit_bs', default=64, type=int, help="Batch size for circuit discovery.")
   parser.add_argument('--circuit_seed', default=7, type=int, help="Random seed for the fixed real circuit discovery sequences.")
@@ -169,7 +169,7 @@ def check_opts(opts):
     try:
       import torch, transformer_lens, auto_circuit
     except ImportError as e:
-      raise ImportError('--circuit-discovery needs Python >= 3.10 and the packages in requirements-circuit.txt') from e
+      raise ImportError('--circuit-discovery needs Python >= 3.10 and the packages in requirements.txt') from e
 
 
 def get_opts_from_json_file(fname):

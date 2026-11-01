@@ -2,7 +2,8 @@
 Draws the quick test of scripts/quick_test.sh: test accuracy, margin and ACDC circuit
 size per generation of the base model under real data only, full replacement at T = 3
 and accumulation at T = 3, into visuals/figures/quick_test.{pdf,png}. Prints each
-measure next to the report's value for the same run and generation.
+measure next to the report's value for the same run and generation, and the run
+folders that hold every generation's circuit diagrams.
 
 python -I visuals/quick_test_figure.py
 '''
@@ -66,7 +67,11 @@ def main():
       cells = ['{} ({})'.format(fmt.format(v), fmt.format(r))
                for v, r in zip(metrics[run][measure], REPORT[run][measure])]
       print('  {:<22} {}'.format(label, '  '.join(cells)))
-  print('\nwrote', os.path.abspath(os.path.join(opts.out, 'quick_test.png')))
+  print('\nwrote', os.path.abspath(os.path.join(opts.out, 'quick_test.png')), 'and .pdf')
+  print('\nEvery generation g of each run also has its circuit diagrams in gen_<g>/circuit/'
+        ' and its head-to-head tests in gen_<g>/head_circuit/:')
+  for run, _, label in RUNS:
+    print('  {:<22} {}'.format(label, os.path.abspath(rf.find_run(opts.results, run))))
 
 
 if __name__ == '__main__':

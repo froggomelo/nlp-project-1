@@ -1,6 +1,14 @@
-# CPU training with the existing Omniglot embeddings, plus plotting utilities.
-# Use Python 3.9-3.12 (the project setup guide uses Python 3.10).
-# Install: python -m pip install -r requirements.txt
+# Training, collapse runs, circuit discovery and figures, on CPU.
+# Use Python 3.11 (3.10-3.12 work: auto-circuit needs 3.10 or newer, and jaxlib
+# 0.4.26 has no packages for 3.13 or newer). Install in this order:
+#   python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+#   python -m pip install -r requirements.txt
+#   python -m pip install --no-deps auto-circuit==1.0.1
+# The first line installs the CPU build of PyTorch, which the torch pin below
+# then keeps. auto-circuit is installed without its dependencies: its full list
+# pulls in tracr-pypi and other task-specific packages that are not needed here
+# and can move JAX off the pinned version.
+
 # Keep the JAX stack on versions compatible with this repository's older APIs.
 jax==0.4.26
 jaxlib==0.4.26
@@ -9,16 +17,29 @@ optax==0.2.2
 chex==0.1.86
 jaxtyping==0.2.28
 
-# nptyping uses NumPy aliases removed in NumPy 2.
+# nptyping uses NumPy aliases removed in NumPy 2. Newer pandas and pyarrow (both
+# datasets dependencies) need NumPy 2; pyarrow 20 or newer fails at import.
 numpy==1.26.4
+pyarrow==19.0.1
 scipy==1.12.0
 nptyping==2.5.0
 h5py==3.11.0
 matplotlib==3.8.4
 tqdm==4.66.4
 
-# Optional extras (not needed for the basic training run):
+# Circuit discovery (--circuit-discovery, see docs/circuit_discovery.md).
+torch==2.14.1
+transformer-lens==2.9.0
+# transformer-lens 2.9 breaks with transformers 5 and with datasets 4 or newer
+transformers<5
+datasets<4
+einops
+ordered-set
+plotly
+blobfile
+vscode-tqdm
+
+# Optional extras (not needed for the runs):
 # wandb                # --use_wandb experiment tracking
-# submitit             # Slurm sweep scripts
-# torch, torchvision   # Re-extracting image embeddings
+# torchvision          # Re-extracting image embeddings
 # jupyterlab, ipywidgets # Interactive notebooks
