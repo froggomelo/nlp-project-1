@@ -25,6 +25,7 @@ from matplotlib.patches import FancyBboxPatch
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+OMNIGLOT_URL = 'https://github.com/brendenlake/omniglot/raw/master/python/images_background.zip'
 
 # The four characters, as <alphabet>/<character>. A and B are the bursty pair of the
 # opening rows, C and D the pair of the last row.
@@ -65,6 +66,10 @@ INCH_PER_UNIT = 0.55   # figure size per box side; the font sizes are set for th
 
 def load_glyphs(zip_path):
   '''Returns (character, drawer) -> greyscale image cropped to its strokes.'''
+  if not os.path.isfile(zip_path):
+    raise SystemExit('{} not found. Download the Omniglot archive first:\n'
+                     '  mkdir -p visuals/omniglot\n'
+                     '  curl -L -o visuals/omniglot/images_background.zip {}'.format(zip_path, OMNIGLOT_URL))
   glyphs = {}
   with zipfile.ZipFile(zip_path) as z:
     for key, char in CHARACTERS.items():

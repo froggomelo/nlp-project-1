@@ -133,20 +133,23 @@ Every number and figure in the report comes from the runs below. Their `config.j
 | Report | Runs | Produced by |
 |---|---|---|
 | Learning rates and training length | `tune_<variant>_lr<lr>` | `scripts/tune_run.sh` |
-| Table 1, Figures 2 and 3, Figures S2 and S3 | `collapse_<variant>_G20_<condition>`, with `_seed15` and `_seed25` | `scripts/nlp_project_run.sh`, stage 2 |
+| Table 1, Figures 1 and 2, Figures S2 and S3 | `collapse_<variant>_G20_<condition>`, with `_seed15` and `_seed25` | `scripts/nlp_project_run.sh`, stage 2 |
 | Margin formula (r = 0.994) | `collapse_<variant>_T<T>_<condition>`, first seed | `scripts/nlp_project_run.sh`, stage 3 |
-| Context share of the extended model's next symbols | `collapse_extended_G20_T3_replace100` | `scripts/offcontext_check.py` |
+| The extended model's probability on context symbols (13% and 98.6%) | `collapse_extended_G20_T3_accumulate` and `collapse_extended_G20_real_only` | `scripts/offcontext_check.py` |
 | Figures and the rows of Table 1 | all of the above | `python -I visuals/results_figures.py` |
+| Figure S1, the two models | none | `python -I visuals/model_figure.py`, with the Omniglot archive (see the README) |
 
-The context share of the extended model's next symbols comes from `scripts/offcontext_check.py`, which regenerates a run's pool with the model of each requested generation at each requested temperature and reports how often generated next symbols fall outside the context, and how much probability the symbol head gives the context symbols:
+The extended model's probability on context symbols comes from `scripts/offcontext_check.py`, which regenerates a run's pool with the model of each requested generation at each requested temperature and reports how often generated next symbols fall outside the context (`offcontext`), and how much probability the symbol head gives the context symbols at T = 1 (`ctx_mass`):
 
 ```bash
-python -m scripts.offcontext_check results/*_collapse_extended_G20_T3_replace100* --generations 0 19 --temperatures 1 3
+python -m scripts.offcontext_check results/*_collapse_extended_G20_T3_accumulate results/*_collapse_extended_G20_real_only --generations 0 19 --temperatures 1 3
 ```
+
+At generation 19, `ctx_mass` is 0.133 under accumulation at T = 3 (the report's 13%) and 0.985 under real-only retraining. The report's 98.6% is the same measure on a separate set of held-out real prompts.
 
 The report states the margin formula's fit for the first seed only, so stage 3 of the script also runs the other two seeds, which the report does not use.
 
-**History.** The runs were first made in stages by separate scripts: the tuning and the T = 1 runs of Table 1 by an earlier `scripts/nlp_project_run.sh`, the margin-formula runs by `scripts/forced_collapse_run.sh`, the T = 3 runs of Table 1 by `scripts/followup_run.sh` and `scripts/g20_table_run.sh`, and the second and third seeds by `scripts/seed_runs.sh`. These scripts passed the same flags and were merged into the current two scripts in commit `7310e49`. They also ran exploratory sweeps that the report does not use (the next symbol drawn from all training classes, Zipfian classes, a smaller pool, burstiness, argmax and T = 2 sampling). The tag `paper-original-scripts` keeps them:
+**History.** The runs were first made in stages by separate scripts: the tuning and the T = 1 runs of Table 1 by an earlier `scripts/nlp_project_run.sh`, the margin-formula runs by `scripts/forced_collapse_run.sh`, the T = 3 runs of Table 1 by `scripts/followup_run.sh` and `scripts/g20_table_run.sh`, and the second and third seeds by `scripts/seed_runs.sh`. These scripts passed the same flags and were merged into the current two scripts in commit `7310e49`. They also ran exploratory sweeps that the report does not use (the next symbol drawn from all training classes, Zipfian classes, a smaller pool, burstiness, argmax and T = 2 sampling). The tag `paper-original-scripts` of the [GitHub repository](https://github.com/froggomelo/nlp-project-1) keeps them:
 
 ```bash
 git show paper-original-scripts:scripts/seed_runs.sh

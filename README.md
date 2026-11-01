@@ -56,7 +56,15 @@ Each run writes `results/<timestamp>_<name>/` with one `gen_<g>/` folder per gen
 python -I visuals/results_figures.py
 ```
 
-draws the report figures into `visuals/figures/` and prints the rows of Table 1. [experiments.md](docs/experiments.md#runs-behind-the-report) maps each table and figure of the report to its runs, and names the earlier scripts that first produced them (kept under the git tag `paper-original-scripts`).
+draws the report figures into `visuals/figures/` and prints the rows of Table 1.
+
+```bash
+mkdir -p visuals/omniglot
+curl -L -o visuals/omniglot/images_background.zip https://github.com/brendenlake/omniglot/raw/master/python/images_background.zip
+python -I visuals/model_figure.py
+```
+
+draws Figure S1, the two models, into `visuals/model_figure.{pdf,png}`. It shows real Omniglot characters, read from the official archive that the first two lines download. [experiments.md](docs/experiments.md#runs-behind-the-report) maps each table and figure of the report to its runs, and names the earlier scripts that first produced them (kept under the git tag `paper-original-scripts` of the [GitHub repository](https://github.com/froggomelo/nlp-project-1)).
 
 ## Further documentation
 
