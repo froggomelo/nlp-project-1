@@ -1,16 +1,15 @@
 # Attention Head Plots
 
-`plotting/nlp_project.ipynb` plots the attention heads of the trained models. It shows where each head attends, which heads act as previous-token and induction heads, how those heads form during training, how much the model depends on each one, and how they change across model collapse generations. It reads the collapse runs of `scripts/nlp_project_run.sh` and two single-generation runs, `<timestamp>_base` and `<timestamp>_extended`, which train each model once on fresh data with dense checkpoints. The run script does not train these two; the tuned versions in `results/` came from `python -m src.main` with the shared flags, the tuned `--lr`, `--model_variant`, and `--run base` or `--run extended`.
+`plotting/nlp_project.ipynb` plots how the attention heads change across model collapse generations: which heads act as previous-token and induction heads in each generation, which of them the discovered circuit uses, and how strong the induction head stays under each condition. It reads the collapse runs of `scripts/nlp_project_run.sh`.
 
 ## Design Decisions
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Runs | the newest `<timestamp>_base` and `<timestamp>_extended` runs, and every collapse run found | the notebook runs unchanged after each new run of the script |
+| Runs | every collapse run found in `results/`, and the newest run of each 20-generation condition at T = 3 | the notebook runs unchanged after each new run of the script |
 | Sequences | 1,024 real training sequences drawn with seed 7 | the circuit discovery prompts use the same seed, so attention and circuits describe the same inputs |
-| Attention source | the JAX model's own attention scores | the plots need no PyTorch and run in either environment |
+| Attention source | the JAX model's own attention scores | the plots need no PyTorch |
 | Head scores | previous-token and induction scores | they identify the two roles of the induction circuit (Singh et al., 2024) |
-| Head ablation | one head's values set to zero with the existing `--opto_ablate_heads` mechanism | it reuses the paper's ablation code and measures how much accuracy depends on each head |
 | Collapse view | the final model of every generation, scored on the same real sequences | score changes then reflect the model, not the data |
 | Missing runs | sections without their runs are skipped | the notebook works while the script is still running |
 
@@ -26,30 +25,25 @@ The notebook saves every figure as PNG and PDF in `results/figures/nlp_project/`
 
 | File | Contents |
 |---|---|
-| `<variant>_attention_maps` | mean attention map of every head, one row per layer |
-| `<variant>_head_scores` | previous-token and induction score of every head |
-| `<variant>_single_sequences` | the strongest previous-token and induction heads on three sequences |
-| `<variant>_scores_over_training` | training loss and both scores at 40 checkpoints across training |
-| `<variant>_head_ablations` | accuracy drop when each head is ablated, ordered by head score |
-| `extended_attention_from_yq` | attention at the extended model's next-symbol prediction |
-| `collapse_<...>_heads_per_generation` | both scores per generation, and the last-layer heads in each generation's ACDC circuit when circuit discovery ran |
-| `collapse_<variant>_induction_across_generations` | the strongest induction score per generation for each 6-generation collapse condition at T = 1 (`collapse_<variant>_<condition>`); skipped when those runs are missing, as the run script no longer trains them |
+| `collapse_<...>_heads_per_generation` | the layer 0 previous-token and last-layer induction score of every head per generation, and the last-layer heads in each generation's ACDC circuit when circuit discovery ran |
+| `collapse_<variant>_induction_across_generations` | the strongest induction score per generation for each condition of the 20-generation runs at T = 3 (`collapse_<variant>_G20_real_only` and `collapse_<variant>_G20_T3_<condition>`, first seed) |
 
-## Validation on the Trained Base Model
+## Validation on the Report's Runs
 
-The notebook was run on the base and extended models trained by the run script. In the base model, head A0.2 has the highest previous-token score (0.93) and head A1.3 the highest induction score (0.84). The circuit discovery picks out the same two heads, A0.2 feeding the key input of A1.3. Both scores rise together between 150,000 and 400,000 sequences, the same interval in which the training loss drops below the random-label level. Ablating A0.2 lowers accuracy by 2.6 percentage points, more than any other single head. The collapse sections were tested on a two-generation run.
+The notebook was run on the runs behind the report. Under full replacement at T = 3, generation 0 of the base model has three layer 0 previous-token heads (scores 0.88 to 0.97) and last-layer induction scores up to 0.96, and its ACDC circuit uses three last-layer heads. The induction scores fall to about 0 by generation 5 and the previous-token scores to 0.2 to 0.6, while the circuit grows to use all eight last-layer heads. Across conditions, the strongest induction score stays above 0.75 under real data only, accumulation and 50% replacement, and falls to about 0.25 or less by generation 5 under 90% and 100% replacement.
 
 ## Running
 
 ```bash
+python -m pip install jupyterlab
 jupyter lab plotting/nlp_project.ipynb
 ```
 
-Use the `.venv` kernel and run all cells. The full notebook takes under a minute for the base and extended runs on a laptop CPU. Each collapse run adds one model load per generation. `N_SEQ`, `SEQ_SEED`, and `N_CKPTS_OVER_TRAINING` in the second code cell change the sequences and the number of checkpoints sampled.
+Use the `.venv` kernel and run all cells. Each collapse run adds one model load per generation; the 64 collapse runs of the report's `results/` take under 3 minutes on a 16-core CPU. `N_SEQ` and `SEQ_SEED` in the second code cell change the sequences.
 
 ## Limitations
 
-The scores average over sequences and ignore positions outside their definitions. A head can matter through positions the scores do not cover, which the ablation plot shows. Ablating one head at a time misses redundant heads that can stand in for each other. The induction score assumes one matching context item and is defined only for sequences with a non-matching one.
+The scores average over sequences and ignore positions outside their definitions, so a head can matter through positions the scores do not cover. The induction score assumes one matching context item and is defined only for sequences with a non-matching one.
 
 ## References
 

@@ -39,8 +39,10 @@ This checks the main finding of the report in about 15 minutes on a 16-core
 CPU. It retrains the base model over 4 generations under real data only, full
 replacement at T = 3, and accumulation at T = 3, three runs at once. It then
 draws visuals/figures/quick_test.png (test accuracy, margin, and ACDC circuit
-size per generation) and prints each value next to the report's. Under full
-replacement, the margin halves and the circuit grows at generation 1 while
+size per generation) and prints each value next to the report's. It also
+prints each run's folder in results/, where gen_<g>/circuit/ holds generation
+g's circuit diagrams and gen_<g>/head_circuit/ its head-to-head tests. Under
+full replacement, the margin halves and the circuit grows at generation 1 while
 accuracy holds, and accuracy falls from generation 2. A run starts only while
 8 GB of memory are free, so on a smaller machine run
 
