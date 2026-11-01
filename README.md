@@ -80,7 +80,9 @@ curl -L -o visuals/omniglot/images_background.zip https://github.com/brendenlake
 python -I visuals/model_figure.py
 ```
 
-draws Figure S1, the two models, into `visuals/model_figure.{pdf,png}`. It shows real Omniglot characters, read from the official archive that the first two lines download. [experiments.md](docs/experiments.md#runs-behind-the-report) maps each table and figure of the report to its runs, and names the earlier scripts that first produced them (kept under the git tag `paper-original-scripts` of the [GitHub repository](https://github.com/froggomelo/nlp-project-1)).
+draws Figure S1, the two models, into `visuals/model_figure.{pdf,png}`. It shows real Omniglot characters, read from the official archive that the first two lines download.
+
+The submission already holds these figures, drawn from the runs behind the report: `visuals/figures/` (Figures 1, 2, S2 and S3 and four further views), `visuals/model_figure.{pdf,png}` (Figure S1) and `visuals/model_figure_stacked.{pdf,png}` (the same with `--stack`, base above extended). Running the scripts again overwrites them. [experiments.md](docs/experiments.md#runs-behind-the-report) maps each table and figure of the report to its runs, and names the earlier scripts that first produced them (kept under the git tag `paper-original-scripts` of the [GitHub repository](https://github.com/froggomelo/nlp-project-1)).
 
 ## Further documentation
 

@@ -133,10 +133,17 @@ draws the report figures into visuals/figures/ and prints the rows of Table 1.
 
 draws Figure S1, the two models, into visuals/model_figure.pdf and .png. It
 shows real Omniglot characters, read from the official archive that the first
-two lines download. The section "Runs Behind the Report" of docs/experiments.md
-maps each table and figure of the report to its runs, and names the earlier
-scripts that first produced them (kept under the git tag paper-original-scripts
-of the GitHub repository, https://github.com/froggomelo/nlp-project-1).
+two lines download.
+
+The submission already holds these figures, drawn from the runs behind the
+report: visuals/figures/ (Figures 1, 2, S2 and S3 and four further views),
+visuals/model_figure.pdf and .png (Figure S1) and
+visuals/model_figure_stacked.pdf and .png (the same with --stack, base above
+extended). Running the scripts again overwrites them. The section "Runs Behind
+the Report" of docs/experiments.md maps each table and figure of the report to
+its runs, and names the earlier scripts that first produced them (kept under
+the git tag paper-original-scripts of the GitHub repository,
+https://github.com/froggomelo/nlp-project-1).
 
 
 Further documentation
