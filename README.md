@@ -1,6 +1,6 @@
 # NLP Project 1: Induction Heads and Model Collapse: How the Real-to-Synthetic Data Ratio Shapes In-Context Learning Circuits
 
-This code trains two-layer transformers on the in-context learning task of Singh et al. (2024), retrains them over generations on data that the previous model relabels, and traces how the induction circuit changes. `src/` holds the training and circuit code, `scripts/` the run scripts, `visuals/` the report figures, `report/` the report, and `data/` the dataset. Results go to `results/`.
+This code trains two-layer transformers on the in-context learning task of Singh et al. (2024), retrains them over generations on data that the previous model relabels, and traces how the induction circuit changes. `src/` holds the training and circuit code, `scripts/` the run scripts, `report/` the report, and `data/` the dataset. Results go to `results/`. The figures come from two folders. `plotting/` is a package that the runs import to draw each generation's circuit plots, and it also holds the results page and the plotting code of Singh et al. (2024). `visuals/` holds standalone scripts that draw the report figures from finished runs.
 
 ## Setup
 
