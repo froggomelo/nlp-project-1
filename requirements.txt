@@ -1,5 +1,6 @@
 # Training, collapse runs, circuit discovery and figures, on CPU.
-# Use Python 3.10-3.12 (auto-circuit needs 3.10 or newer). Install in this order:
+# Use Python 3.11 (3.10-3.12 work: auto-circuit needs 3.10 or newer, and jaxlib
+# 0.4.26 has no packages for 3.13 or newer). Install in this order:
 #   python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
 #   python -m pip install -r requirements.txt
 #   python -m pip install --no-deps auto-circuit==1.0.1

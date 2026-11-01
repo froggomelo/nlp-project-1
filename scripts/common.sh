@@ -15,6 +15,18 @@ export OMP_NUM_THREADS=${OMP_NUM_THREADS:-2}  # PyTorch threads per run; more th
 POLL_SECONDS=${POLL_SECONDS:-30}
 START_WAIT_SECONDS=${START_WAIT_SECONDS:-60}  # after a start, so its memory shows up
 
+### Environment check: stop before any run starts if the setup of the README is missing
+command -v python >/dev/null || { echo "No python found: activate the environment with source .venv/bin/activate (see the README setup)" >&2; exit 1; }
+python - <<'EOF' || exit 1
+import importlib.util, sys
+if not (3, 10) <= sys.version_info[:2] <= (3, 12):
+  sys.exit('Python {}.{} found, but the code needs Python 3.10-3.12 (see the README setup)'.format(*sys.version_info[:2]))
+missing = [m for m in ('jax', 'equinox', 'optax', 'nptyping', 'h5py', 'matplotlib', 'torch', 'transformer_lens', 'auto_circuit')
+           if importlib.util.find_spec(m) is None]
+if missing:
+  sys.exit('Missing packages: {}. Run the README setup and activate the environment'.format(', '.join(missing)))
+EOF
+
 ### Fixed settings
 SAVE_FOLDER="./results"
 GEN_DATASET_SIZE=20000             # pool size N

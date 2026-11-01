@@ -15,13 +15,22 @@ scripts that draw the report figures from finished runs.
 Setup
 -----
 
-Run all commands from the project folder, with Python 3.10-3.12, on CPU.
+Run all commands from the project folder, with Python 3.11, on CPU.
 
-    python3 -m venv .venv
+    python3.11 -m venv .venv
     source .venv/bin/activate
     python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
     python -m pip install -r requirements.txt
     python -m pip install --no-deps auto-circuit==1.0.1
+
+The code needs Python 3.10-3.12, as the pinned jaxlib 0.4.26 has no packages
+for Python 3.13 or newer, and it was tested with 3.11. Recent systems such as
+Ubuntu 26.04 come with a newer python3 and no python3.11. uv
+(https://docs.astral.sh/uv/) then provides it: replace the first line with
+
+    uv venv --seed --python 3.11 .venv
+
+which downloads Python 3.11 if needed (--seed adds pip to the environment).
 
 The torch line installs the CPU build of PyTorch, which saves about 4 GB of GPU
 libraries that the default build from PyPI brings in and the code never uses.
