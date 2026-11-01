@@ -77,7 +77,7 @@ All optogenetic manipulations (e.g., ablating heads) are done in [opto.py](../sr
 
 Our optogenetic manipulations were mainly used in the [What needs to go right for an induction head?](https://arxiv.org/abs/2404.07129) paper. As a result, many of them assume that the input sequences are 5 tokens long and have the format exemplar-label-exemplar-label-query. Many optogenetic manipulations rely on two (or more) passes through the network -- in the first, various activations are computed using the unperturbed network. These activations are then used to populate the cache, which is then used during a second pass through the network. This is, for example, how pattern- and value-preserving ablations are coded up.
 
-Beyond these python files, we strongly suggest users to go through the [ih_paper_appendix_runs.sh](../scripts/ih_paper_appendix_runs.sh) script and [ih_paper_appendix_plots.ipynb](../plotting/ih_paper_appendix_plots.ipynb) notebook, which really demonstrate how simple it is to do various analyses. The main paper files also have useful examples, but the appendix contains more uses which could be of interest for future work.
+Beyond these python files, we strongly suggest users to go through the `ih_paper_appendix_runs.sh` script and `ih_paper_appendix_plots.ipynb` notebook of the original repository (not included in this project), which really demonstrate how simple it is to do various analyses. The main paper files also have useful examples, but the appendix contains more uses which could be of interest for future work.
 
 Note: Most comments in [opto.py](../src/opto.py) refer to the first two layers of the model as "layer 0" and "layer 1" (essentially, 0-indexing).
 

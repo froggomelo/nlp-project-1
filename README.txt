@@ -5,12 +5,11 @@ Data Ratio Shapes In-Context Learning Circuits
 This code trains two-layer transformers on the in-context learning task of
 Singh et al. (2024), retrains them over generations on data that the previous
 model relabels, and traces how the induction circuit changes. src/ holds the
-training and circuit code, scripts/ the run scripts, report/ the report, and
-data/ the dataset. Results go to results/. The figures come from two folders.
-plotting/ is a package that the runs import to draw each generation's circuit
-plots, and it also holds the results page and the plotting code of Singh et
-al. (2024). visuals/ holds standalone scripts that draw the report figures
-from finished runs.
+training and circuit code, scripts/ the run scripts, and data/ the dataset.
+Results go to results/. The figures come from two folders. plotting/ is a
+package that the runs import to draw each generation's circuit plots, and it
+also holds the notebook of attention-head plots. visuals/ holds standalone
+scripts that draw the report figures from finished runs.
 
 
 Setup
@@ -20,13 +19,13 @@ Run all commands from the project folder, with Python 3.10-3.12, on CPU.
 
     python3 -m venv .venv
     source .venv/bin/activate
-    python -m pip install -r requirements.txt
     python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
-    python -m pip install -r requirements-circuit.txt
+    python -m pip install -r requirements.txt
     python -m pip install --no-deps auto-circuit==1.0.1
 
 The torch line installs the CPU build of PyTorch, which saves about 4 GB of GPU
 libraries that the default build from PyPI brings in and the code never uses.
+It comes before requirements.txt, whose torch pin then keeps that build.
 Activate the environment again with "source .venv/bin/activate" in every new
 terminal.
 
@@ -121,14 +120,9 @@ This project:
   - docs/head_circuit.md: the head-to-head tests of the induction circuit.
   - docs/attention_plots.md: the attention-head plots of
     plotting/nlp_project.ipynb.
-  - docs/constrained_ablation.md: the ablation that restricts the extended
-    model's generated next symbols to the context (run but not analysed in
-    the report); the section "Ablation: Constrained Next Symbols" of
-    docs/experiments.md describes how to run it.
 
 The original code of Singh et al. (2024):
 
-  - docs/Paper_README.md: the original paper documentation and run scripts.
   - docs/setup.md: the original GPU installation guide.
   - docs/artificial_optogenetics_guide.md: the model's activation access and
     manipulation.

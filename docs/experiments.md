@@ -64,21 +64,6 @@ The T = 3 runs add `--gen_temperature 3` and carry `T3` in their name, as in `co
 
 `replace50`, `replace90`, `replace100`, and `accumulate` at T = 3 and T = 5, for both models, over 6 generations. The report's margin formula predicts each generation's label error from the previous generation's margin, and these runs supply the pairs at two temperatures. Their first six generations at T = 3 match the 20-generation T = 3 runs of the same seed exactly.
 
-## Ablation: Constrained Next Symbols
-
-`scripts/constrained_run.sh` repeats the extended model's 20-generation runs with `--gen_symbol_constraint context` ([model_collapse.md](model_collapse.md#constrained-next-symbols)), which restricts generated next symbols to the classes in the context. It asks whether recursive training still degrades the model when it can no longer generate invalid next symbols.
-
-| Condition | T | Run name |
-|---|---|---|
-| 50%, 90%, and 100% replacement, accumulation | 3 | `collapse_extended_G20_T3ctx_<condition>` |
-| Full replacement, accumulation | 1 | `collapse_extended_G20_T1ctx_<condition>` |
-
-Each condition runs for the three seeds, 18 runs in all (about 8 hours), in `results/constrained/`, which covers every extended-model row of Table 1. `ONLY="<condition> ..."` runs just the named conditions. Each run reuses the generation 0 model of the matching unconstrained run through `--gen0_from`, so both arms start from the same checkpoint. `real_only` samples nothing, so the unconstrained `collapse_extended_G20_real_only` runs serve as its control.
-
-`scripts/symbol_distribution.py` then measures every generation's next-symbol distribution on 5,000 held-out real prompts: the unmasked probability on the context classes, and the distribution renormalised over them with the true query label supplied (its entropy, its KL divergence from the uniform distribution over the distinct context classes, and its preference by position and for the query's class), as well as fully autoregressive generation with and without the constraint. It writes `results/constrained/analysis/<run>.tsv`. `python -I visuals/constrained_figures.py` prints the generation 19 comparison and the LaTeX rows of Table 1 with the extended model's runs constrained (the base model has no next symbol, so its columns are unchanged), and draws the trends into `visuals/figures/constrained_trends.pdf`.
-
-[constrained_ablation.md](constrained_ablation.md) reports the results. The KL divergence from uniform falls when the symbol head stops using the context, because flat logits are trivially uniform over the two context classes. It is therefore read together with the unmasked context mass.
-
 ## Design Decisions
 
 **Forced errors.** At T = 1 the tuned base model regenerates all but about one label in 10,000 correctly over 5 generations, and about 0.6% after 20 generations, so the replacement levels barely differ. A raised temperature makes the same well-trained generation 0 model write label errors into the pool, so any later degradation comes from the errors rather than from a weaker model. T = 3 and T = 5 give a range of error rates.
@@ -87,7 +72,7 @@ Each condition runs for the three seeds, 18 runs in all (about 8 hours), in `res
 
 **Seeds.** Each seed pair `init:train` sets `--init_seed`, which fixes the initial weights, and `--train_seed`, which fixes the pool, the batch order, the replaced items, and the sampled labels. The pairs are 5:0, 15:10, and 25:20. The evaluation and circuit-discovery sequences keep their default seeds, so every seed is measured on the same sequences. The learning rates are tuned once and shared by all seeds.
 
-**Parallel runs.** The script runs `JOBS` experiments at once, five by default. Each run's PyTorch threads are capped at `OMP_NUM_THREADS=2`. With the default of eight threads per run, six parallel runs put 48 threads on 16 cores, and circuit discovery, which runs many small operations, slowed from under a minute to over an hour per model. Training in JAX is unaffected. At most two accumulation runs run at once, as each reaches about 7 GB at generation 20, and a run starts only while 8 GB of memory are free. Running in parallel does not change results beyond small numerical differences: a 20-generation run reproduced the first six generations of a 6-generation run that ran alone, and a rerun of a constrained accumulation run matched its first eight generations exactly and stayed within 0.02 query accuracy afterwards.
+**Parallel runs.** The script runs `JOBS` experiments at once, five by default. Each run's PyTorch threads are capped at `OMP_NUM_THREADS=2`. With the default of eight threads per run, six parallel runs put 48 threads on 16 cores, and circuit discovery, which runs many small operations, slowed from under a minute to over an hour per model. Training in JAX is unaffected. At most two accumulation runs run at once, as each reaches about 7 GB at generation 20, and a run starts only while 8 GB of memory are free. Running in parallel does not change results beyond small numerical differences: a 20-generation run reproduced the first six generations of a 6-generation run that ran alone.
 
 **Restarting.** The two run scripts share their flags, scheduler, and checks through `scripts/common.sh`. Before queueing a run, they look for a finished results folder of the same name whose `config.json` matches the run's flags and whose `head_circuit.h5` holds every generation, and skip the run if they find one.
 

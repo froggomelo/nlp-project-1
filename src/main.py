@@ -808,17 +808,14 @@ def run_with_opts(opts):
       model = eqx.tree_deserialise_leaves(done, ckpt_fmt)['model']
       print('Generation {}: resumed from {}'.format(g, done))
       continue
-    if g == 0 and opts.gen0_from is not None:
-      model = reuse_gen0(opts.gen0_from, run_folder, gen_folder, model, opt_state, seeds)
-    else:
-      model, opt_state, _ = train_generation(
-        model=model, opt_state=opt_state, seeds=gen_seeds,
-        start_iter=start_iter if g == 0 else 0,
-        sample_batch=generations.make_pool_sampler(pool, opts.train_bs),
-        run_folder=gen_folder,
-        wandb_prefix='gen{}/'.format(g) if opts.generations > 1 else '',
-        wandb_step_offset=g*wandb_gen_steps,
-        **train_kwargs)
+    model, opt_state, _ = train_generation(
+      model=model, opt_state=opt_state, seeds=gen_seeds,
+      start_iter=start_iter if g == 0 else 0,
+      sample_batch=generations.make_pool_sampler(pool, opts.train_bs),
+      run_folder=gen_folder,
+      wandb_prefix='gen{}/'.format(g) if opts.generations > 1 else '',
+      wandb_step_offset=g*wandb_gen_steps,
+      **train_kwargs)
     find_circuits(model, gen_folder, g)
 
 
@@ -845,36 +842,6 @@ def finished_generation(run_folder, gen_folder, g, opts):
     if not opts.no_head_circuit and h5_rows('/'.join([run_folder, 'head_circuit.h5'])) <= g:
       return None
   return '/'.join([ckpt_folder, ckpts[-1]])
-
-
-# Settings that do not change the generation 0 model or its training log
-GEN0_IRRELEVANT = {'run', 'raw_name', 'base_folder', 'generations', 'gen_mode', 'gen_replace_frac',
-                   'gen_sampling', 'gen_temperature', 'gen_symbol_constraint', 'gen_init', 'gen0_from',
-                   'resume', 'circuit_discovery', 'no_head_circuit', 'use_wandb'}
-
-
-def reuse_gen0(source, run_folder, gen_folder, model, opt_state, seeds):
-  '''Loads the final generation 0 model of the finished run `source` instead of
-  training it, after checking that every setting affecting generation 0 matches,
-  and copies its checkpoint and training log into this run's gen_0 folder.'''
-  import shutil
-  with open('/'.join([source, 'config.json'])) as f:
-    theirs = json.load(f)
-  with open('/'.join([run_folder, 'config.json'])) as f:
-    ours = json.load(f)
-  differ = sorted(k for k in set(ours) & set(theirs)
-                  if k not in GEN0_IRRELEVANT and ours[k] != theirs[k])
-  assert not differ, '--gen0_from {} differs in {}'.format(source, differ)
-  ckpts = sorted(os.listdir('/'.join([source, 'gen_0', 'checkpoints'])))
-  ckpt_path = '/'.join([source, 'gen_0', 'checkpoints', ckpts[-1]])
-  ckpt_fmt = {'iter': -1, 'seeds': seeds, 'opt_state': opt_state, 'model': model}
-  ckpt = eqx.tree_deserialise_leaves(ckpt_path, ckpt_fmt)
-  assert ckpt['iter'] == theirs['train_iters'], 'the last gen_0 checkpoint is not the final model'
-  os.makedirs('/'.join([gen_folder, 'checkpoints']), exist_ok=True)
-  shutil.copy(ckpt_path, '/'.join([gen_folder, 'checkpoints', ckpts[-1]]))
-  shutil.copy('/'.join([source, 'gen_0', 'log.h5']), '/'.join([gen_folder, 'log.h5']))
-  print('Generation 0: reusing the model of {}'.format(ckpt_path))
-  return ckpt['model']
 
 
 if __name__ == "__main__":
